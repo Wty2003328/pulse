@@ -8,8 +8,12 @@ import type { WidgetDimensions } from '../../lib/widget-size';
 import type { FeedResponse, FeedItem } from '../../types';
 
 function sourceLabel(source: string): string {
-  if (source.startsWith('rss:')) return source.slice(4).replace(/-/g, ' ');
-  return source;
+  let label = source;
+  if (label.startsWith('rss:')) label = label.slice(4);
+  // Capitalize each word: "ars-technica" → "Ars Technica"
+  return label
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function stripHtml(html: string): string {
@@ -25,11 +29,11 @@ function FeedItemRow({ item, small }: { item: FeedItem; small?: boolean }) {
     return (
       <div className="py-1.5 border-b border-border/50 last:border-0">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <span className="text-[0.6rem] font-semibold uppercase text-primary">{sourceLabel(item.source)}</span>
+          <span className="text-[0.6rem] font-semibold text-primary">{sourceLabel(item.source)}</span>
           <span className="text-[0.6rem] text-muted-foreground">{item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}</span>
         </div>
         <a href={item.url ?? undefined} target="_blank" rel="noopener noreferrer"
-          className="text-xs font-medium text-foreground hover:text-primary leading-snug line-clamp-2 no-underline">
+          className="block pl-3 text-xs font-medium text-foreground hover:text-primary leading-snug line-clamp-2 no-underline">
           {item.title}
         </a>
       </div>
@@ -42,8 +46,9 @@ function FeedItemRow({ item, small }: { item: FeedItem; small?: boolean }) {
         className={`px-3 py-2 ${hasContent ? 'cursor-pointer' : ''}`}
         onClick={() => hasContent && setExpanded(!expanded)}
       >
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[0.6rem] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+        {/* Source + time row */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[0.6rem] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
             {sourceLabel(item.source)}
           </span>
           <span className="text-[0.6rem] text-muted-foreground">
@@ -57,11 +62,12 @@ function FeedItemRow({ item, small }: { item: FeedItem; small?: boolean }) {
             </span>
           )}
         </div>
-        <h3 className="text-[0.85rem] font-medium leading-snug">{item.title}</h3>
+        {/* Title — indented relative to source tag */}
+        <h3 className="text-[0.85rem] font-medium leading-snug pl-3">{item.title}</h3>
       </div>
 
       {expanded && (
-        <div className="px-3 pb-2.5 border-t border-border/50 pt-2 space-y-2">
+        <div className="pl-6 pr-3 pb-2.5 border-t border-border/50 pt-2 space-y-2">
           {item.summary && <p className="text-xs text-muted-foreground leading-relaxed italic">{item.summary}</p>}
           {item.content && (
             <div className="text-xs text-foreground/80 leading-relaxed max-h-48 overflow-y-auto">
