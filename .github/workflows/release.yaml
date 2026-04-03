@@ -25,7 +25,7 @@ jobs:
             os: ubuntu-latest
             name: pulse-linux-arm64
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: macos-13
             name: pulse-macos-amd64
           - target: aarch64-apple-darwin
             os: macos-latest
@@ -47,7 +47,7 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross
 
       # Build frontend
       - uses: actions/setup-node@v4
@@ -58,11 +58,14 @@ jobs:
 
       - name: Build frontend
         working-directory: web
-        run: npm ci && npm run build
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run build
 
       # Build Rust binary
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --locked --target ${{ matrix.target }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
@@ -72,12 +75,13 @@ jobs:
           cp target/${{ matrix.target }}/release/pulse dist/${{ matrix.name }}
           cp -r config dist/
           chmod +x dist/${{ matrix.name }}
+          tar -czf ${{ matrix.name }}.tar.gz -C dist .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
-          path: dist/
+          path: ${{ matrix.name }}.tar.gz
 
   release:
     name: Create Release
@@ -96,7 +100,7 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            artifacts/pulse-linux-amd64/pulse-linux-amd64
-            artifacts/pulse-linux-arm64/pulse-linux-arm64
-            artifacts/pulse-macos-amd64/pulse-macos-amd64
-            artifacts/pulse-macos-arm64/pulse-macos-arm64
+            artifacts/pulse-linux-amd64/pulse-linux-amd64.tar.gz
+            artifacts/pulse-linux-arm64/pulse-linux-arm64.tar.gz
+            artifacts/pulse-macos-amd64/pulse-macos-amd64.tar.gz
+            artifacts/pulse-macos-arm64/pulse-macos-arm64.tar.gz

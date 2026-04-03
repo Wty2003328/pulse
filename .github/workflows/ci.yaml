@@ -60,7 +60,7 @@ jobs:
         run: cargo fmt --check
 
       - name: Clippy
-        run: cargo clippy -- -W clippy::all
+        run: cargo clippy --all-targets -- -W clippy::all
 
       - name: Build
         run: cargo build
