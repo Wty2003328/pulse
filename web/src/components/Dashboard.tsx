@@ -112,6 +112,7 @@ export default function Dashboard() {
             compactType="vertical"
             preventCollision={false}
             containerPadding={[0, 0]}
+            resizeHandles={['se', 'sw', 'ne', 'nw']}
             margin={[GAP, GAP]}
           >
             <div key="feed">
