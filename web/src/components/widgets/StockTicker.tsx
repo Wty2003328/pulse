@@ -1,5 +1,4 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
-import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
 import { itemsForHeight } from '../../lib/widget-size';
 import type { WidgetDimensions } from '../../lib/widget-size';
@@ -13,33 +12,23 @@ interface StockMetadata {
   direction: 'up' | 'down' | 'neutral';
 }
 
-function StockItemRow({ item, small }: { item: FeedItem; small?: boolean }) {
+function StockRow({ item, small }: { item: FeedItem; small?: boolean }) {
   const m = item.metadata as unknown as StockMetadata;
   const pos = m.direction === 'up';
   const neg = m.direction === 'down';
   const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
 
-  if (small) {
-    return (
-      <div className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-        <span className="text-xs font-bold uppercase">{m.symbol}</span>
-        <div className="flex items-center gap-2">
-          <span className={cn('text-xs font-semibold', color)}>${m.price.toFixed(2)}</span>
-          <span className={cn('text-[0.65rem]', color)}>{pos ? '+' : ''}{m.change_percent.toFixed(1)}%</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex items-center justify-between p-2 bg-muted rounded-md hover:bg-accent/40 transition-colors">
-      <div className="flex items-baseline gap-2 flex-1">
-        <span className="text-xs font-bold uppercase text-foreground min-w-[40px]">{m.symbol}</span>
-        <span className={cn('text-xs font-semibold', color)}>${m.price.toFixed(2)}</span>
+    <div className={cn('flex items-center justify-between', small ? 'py-0.5' : 'p-1.5 bg-muted rounded-md hover:bg-accent/40 transition-colors')}>
+      <span className={cn('font-bold uppercase', small ? 'text-[0.65rem]' : 'text-xs')}>{m.symbol}</span>
+      <div className="flex items-center gap-1.5">
+        <span className={cn('font-semibold', color, small ? 'text-[0.65rem]' : 'text-xs')}>${m.price.toFixed(2)}</span>
+        {!small && (
+          <span className={cn('text-[0.6rem] font-medium px-1 py-0.5 rounded', pos && 'bg-success/10', neg && 'bg-destructive/10', color)}>
+            {pos ? '+' : ''}{m.change_percent.toFixed(1)}%
+          </span>
+        )}
       </div>
-      <span className={cn('text-[0.65rem] font-medium px-1.5 py-0.5 rounded', pos && 'bg-success/10', neg && 'bg-destructive/10')}>
-        <span className={color}>{pos ? '+' : ''}{m.change_percent.toFixed(1)}%</span>
-      </span>
     </div>
   );
 }
@@ -49,28 +38,21 @@ interface Props { dims?: WidgetDimensions }
 export default function StockTicker({ dims }: Props) {
   const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed?source=stock&limit=20', 30000);
   const size = dims?.size ?? 'medium';
-  const h = dims?.h ?? 2;
-  const rh = dims?.rowHeightPx ?? 100;
+  const h = dims?.h ?? 3;
+  const rh = dims?.rowHeightPx ?? 80;
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading stocks...</div>;
-  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
-  if (!data || data.items.length === 0) {
-    return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
-  }
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error</div>;
+  if (!data || data.items.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
 
   const isSmall = size === 'small';
-  const perItemPx = isSmall ? 28 : 40;
+  const perItemPx = isSmall ? 20 : 36;
   const maxItems = Math.min(20, itemsForHeight(h, rh, perItemPx));
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between mb-1">
-        <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{data.items.length}</Badge>
-      </div>
-      <div className="flex-1 overflow-y-auto flex flex-col gap-1">
-        {data.items.slice(0, maxItems).map((item) => (
-          <StockItemRow key={item.id} item={item} small={isSmall} />
-        ))}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-0.5">
+        {data.items.slice(0, maxItems).map((item) => <StockRow key={item.id} item={item} small={isSmall} />)}
       </div>
     </div>
   );

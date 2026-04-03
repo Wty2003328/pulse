@@ -10,8 +10,8 @@ interface Props { dims?: WidgetDimensions }
 export default function CollectorStatus({ dims }: Props) {
   const { data, loading, error, refetch } = useWidgetData<CollectorsResponse>('/api/collectors', 30000);
   const size = dims?.size ?? 'medium';
-  const h = dims?.h ?? 2;
-  const rh = dims?.rowHeightPx ?? 100;
+  const h = dims?.h ?? 3;
+  const rh = dims?.rowHeightPx ?? 80;
 
   const triggerCollector = async (id: string) => {
     try { await fetch(`/api/collectors/${id}/run`, { method: 'POST' }); setTimeout(refetch, 2000); }
@@ -19,43 +19,36 @@ export default function CollectorStatus({ dims }: Props) {
   };
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading...</div>;
-  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error</div>;
   if (!data) return null;
 
-  const showButtons = size !== 'small';
-  const perItemPx = showButtons ? 64 : 32;
-  const maxItems = itemsForHeight(h, rh, perItemPx);
-
+  // Small: status dots
   if (size === 'small') {
     return (
       <div className="flex flex-col h-full overflow-y-auto gap-1">
-        {data.collectors.slice(0, maxItems).map((c) => {
-          const lastRun = data.recent_runs.find((r) => r.collector_id === c.id);
-          return (
-            <div key={c.id} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-              <span className="text-xs font-medium truncate">{c.name}</span>
-              <Badge variant={c.enabled ? (lastRun?.status === 'error' ? 'destructive' : 'success') : 'secondary'} className="text-[0.55rem] px-1 py-0">
-                {c.enabled ? (lastRun?.status ?? 'idle') : 'off'}
-              </Badge>
-            </div>
-          );
-        })}
+        {data.collectors.map((c) => (
+          <div key={c.id} className="flex items-center gap-1.5 py-0.5">
+            <div className={`w-2 h-2 rounded-full shrink-0 ${c.enabled ? 'bg-success' : 'bg-muted-foreground/40'}`} />
+            <span className="text-[0.7rem] text-foreground truncate">{c.name}</span>
+          </div>
+        ))}
       </div>
     );
   }
 
+  const perItemPx = 60;
+  const maxItems = itemsForHeight(h, rh, perItemPx);
+
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-2">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
         {data.collectors.slice(0, maxItems).map((collector) => {
           const lastRun = data.recent_runs.find((r) => r.collector_id === collector.id);
           return (
             <div key={collector.id} className="p-2 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium">{collector.name}</span>
-                <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.55rem] px-1 py-0">
-                  {collector.enabled ? 'ON' : 'OFF'}
-                </Badge>
+                <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.55rem] px-1 py-0">{collector.enabled ? 'ON' : 'OFF'}</Badge>
               </div>
               {lastRun && (
                 <div className="flex items-center gap-1.5 mb-1">
@@ -63,9 +56,7 @@ export default function CollectorStatus({ dims }: Props) {
                   <span className="text-[0.6rem] text-muted-foreground">{lastRun.items_count} items</span>
                 </div>
               )}
-              {collector.enabled && (
-                <Button variant="outline" size="sm" className="w-full h-6 text-[0.65rem]" onClick={() => triggerCollector(collector.id)}>Run Now</Button>
-              )}
+              {collector.enabled && <Button variant="outline" size="sm" className="w-full h-5 text-[0.6rem]" onClick={() => triggerCollector(collector.id)}>Run Now</Button>}
             </div>
           );
         })}

@@ -13,22 +13,22 @@ import { useContainerWidth } from '../hooks/useContainerWidth';
 import { getWidgetSize } from '../lib/widget-size';
 import type { FeedResponse } from '../types';
 
-const COLS = 6;
-const GAP = 10;
-const PADDING = 16;
+const COLS = 12;
+const GAP = 8;
+const PADDING = 12;
 
 const defaultLayout: Layout[] = [
-  { i: 'feed',       x: 0, y: 0, w: 3, h: 4, minW: 1, minH: 1 },
-  { i: 'digest',     x: 3, y: 0, w: 3, h: 3, minW: 1, minH: 1 },
-  { i: 'weather',    x: 0, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
-  { i: 'stocks',     x: 2, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
-  { i: 'trending',   x: 3, y: 3, w: 3, h: 2, minW: 1, minH: 1 },
-  { i: 'collectors', x: 4, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
+  { i: 'feed',       x: 0,  y: 0, w: 5, h: 7, minW: 2, minH: 2 },
+  { i: 'digest',     x: 5,  y: 0, w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'weather',    x: 9,  y: 0, w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'trending',   x: 5,  y: 5, w: 4, h: 3, minW: 2, minH: 2 },
+  { i: 'stocks',     x: 9,  y: 4, w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'collectors', x: 9,  y: 7, w: 3, h: 3, minW: 2, minH: 2 },
 ];
 
 function loadLayout(): Layout[] {
   try {
-    const stored = localStorage.getItem('dashboard-layout-v3');
+    const stored = localStorage.getItem('dashboard-layout-v4');
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return defaultLayout;
@@ -37,13 +37,11 @@ function loadLayout(): Layout[] {
 function WidgetShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col h-full">
-      {/* Drag handle — only this area triggers drag */}
       <div className="widget-drag-handle flex items-center gap-1.5 px-3 py-1.5 border-b border-border/50 cursor-grab active:cursor-grabbing shrink-0 select-none">
-        <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground/50" />
+        <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground/40" />
         <span className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
       </div>
-      {/* Content area — clicks work here */}
-      <div className="p-2.5 flex flex-col flex-1 overflow-hidden">
+      <div className="p-2 flex flex-col flex-1 overflow-hidden">
         {children}
       </div>
     </div>
@@ -67,7 +65,7 @@ export default function Dashboard() {
   );
 
   const rowHeight = useMemo(() => {
-    if (containerWidth === 0) return 100;
+    if (containerWidth === 0) return 50;
     const totalGaps = GAP * (COLS - 1);
     const totalPadding = PADDING * 2;
     return (containerWidth - totalGaps - totalPadding) / COLS;
@@ -75,7 +73,7 @@ export default function Dashboard() {
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard-layout-v3', JSON.stringify(newLayout));
+    localStorage.setItem('dashboard-layout-v4', JSON.stringify(newLayout));
   };
 
   const widgetDims = useMemo(() => {
@@ -102,7 +100,7 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      <main ref={containerRef} className="p-4">
+      <main ref={containerRef} className="p-3">
         {containerWidth > 0 && (
           <GridLayout
             className="w-full"
@@ -120,36 +118,12 @@ export default function Dashboard() {
             resizeHandles={['se', 'sw', 'ne', 'nw']}
             margin={[GAP, GAP]}
           >
-            <div key="feed">
-              <WidgetShell title="Feed">
-                <NewsFeed key={`feed-${refetchSignal}`} dims={widgetDims['feed']} />
-              </WidgetShell>
-            </div>
-            <div key="digest">
-              <WidgetShell title="Digest">
-                <Digest key={`digest-${refetchSignal}`} dims={widgetDims['digest']} />
-              </WidgetShell>
-            </div>
-            <div key="weather">
-              <WidgetShell title="Weather">
-                <Weather key={`weather-${refetchSignal}`} dims={widgetDims['weather']} />
-              </WidgetShell>
-            </div>
-            <div key="stocks">
-              <WidgetShell title="Stocks">
-                <StockTicker key={`stocks-${refetchSignal}`} dims={widgetDims['stocks']} />
-              </WidgetShell>
-            </div>
-            <div key="trending">
-              <WidgetShell title="Trending">
-                <Trending key={`trending-${refetchSignal}`} dims={widgetDims['trending']} />
-              </WidgetShell>
-            </div>
-            <div key="collectors">
-              <WidgetShell title="Collectors">
-                <CollectorStatus key={`collectors-${refetchSignal}`} dims={widgetDims['collectors']} />
-              </WidgetShell>
-            </div>
+            <div key="feed"><WidgetShell title="Feed"><NewsFeed key={`f-${refetchSignal}`} dims={widgetDims['feed']} /></WidgetShell></div>
+            <div key="digest"><WidgetShell title="Digest"><Digest key={`d-${refetchSignal}`} dims={widgetDims['digest']} /></WidgetShell></div>
+            <div key="weather"><WidgetShell title="Weather"><Weather key={`w-${refetchSignal}`} dims={widgetDims['weather']} /></WidgetShell></div>
+            <div key="stocks"><WidgetShell title="Stocks"><StockTicker key={`s-${refetchSignal}`} dims={widgetDims['stocks']} /></WidgetShell></div>
+            <div key="trending"><WidgetShell title="Trending"><Trending key={`t-${refetchSignal}`} dims={widgetDims['trending']} /></WidgetShell></div>
+            <div key="collectors"><WidgetShell title="Collectors"><CollectorStatus key={`c-${refetchSignal}`} dims={widgetDims['collectors']} /></WidgetShell></div>
           </GridLayout>
         )}
       </main>

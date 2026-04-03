@@ -50,11 +50,10 @@ collectors:
   #   symbols: ["AAPL", "GOOGL", "MSFT", "NVDA"]
   #   api_key: "${ALPHA_VANTAGE_KEY}"
 
-  # weather:
-  #   enabled: false
-  #   interval: "1h"
-  #   location: "San Francisco, CA"
-  #   api_key: "${OPENWEATHER_KEY}"
+  weather:
+    enabled: true
+    interval: "1h"
+    location: "San Francisco"
 
   # github:
   #   enabled: false

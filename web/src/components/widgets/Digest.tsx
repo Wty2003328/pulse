@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useWidgetData } from '../../hooks/useWidgetData';
 import { timeAgo } from '../../lib/time';
 import { itemsForHeight } from '../../lib/widget-size';
-import { Badge } from '../ui/badge';
 import { ExternalLink } from 'lucide-react';
 import type { WidgetDimensions } from '../../lib/widget-size';
 import type { FeedResponse, FeedItem } from '../../types';
@@ -12,46 +11,31 @@ function stripHtml(html: string): string {
   return doc.body.textContent || '';
 }
 
-function DigestItem({ item, small }: { item: FeedItem; small?: boolean }) {
+function DigestItem({ item }: { item: FeedItem }) {
   const [expanded, setExpanded] = useState(false);
   const score = item.score != null ? Math.round(item.score * 10) / 10 : 0;
-  const hasContent = !!(item.content || item.summary);
-
-  if (small) {
-    return (
-      <div className="flex items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
-        <span className="text-[0.65rem] font-bold text-primary min-w-[1.5rem]">{score}</span>
-        <a href={item.url ?? undefined} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-foreground hover:text-primary truncate no-underline flex-1">
-          {item.title}
-        </a>
-      </div>
-    );
-  }
-
   const scorePercent = Math.min(100, Math.round((score / 10) * 100));
+  const hasContent = !!(item.content || item.summary || item.url);
 
   return (
     <div className="relative rounded-md border-l-[3px] border-l-primary transition-colors hover:bg-accent/40 overflow-hidden">
-      <div className={`p-2.5 ${hasContent ? 'cursor-pointer' : ''}`}
-        onClick={() => hasContent && setExpanded(!expanded)}>
-        <div className="absolute top-0 left-0 h-full flex items-center px-2 z-0"
-          style={{ width: `${scorePercent}%`, background: 'linear-gradient(90deg, rgba(108,140,255,0.12), transparent)' }}>
-          <span className="text-[0.6rem] font-bold text-primary relative z-10">{score}</span>
-        </div>
+      <div className="p-2 cursor-pointer" onClick={() => hasContent && setExpanded(!expanded)}>
+        <div className="absolute top-0 left-0 h-full z-0"
+          style={{ width: `${scorePercent}%`, background: 'linear-gradient(90deg, rgba(108,140,255,0.1), transparent)' }} />
         <div className="relative z-10">
-          <h4 className="text-xs font-medium leading-snug mb-0.5">{item.title}</h4>
-          <div className="flex gap-2 items-center text-[0.6rem]">
-            <span className="text-primary bg-primary/10 px-1 py-0.5 rounded uppercase tracking-wide font-medium">{item.source}</span>
+          <div className="flex items-center gap-1.5 mb-0.5 text-[0.6rem]">
+            <span className="font-bold text-primary">{score}</span>
+            <span className="text-primary bg-primary/10 px-1 py-0.5 rounded font-medium">{item.source}</span>
             <span className="text-muted-foreground">{item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}</span>
           </div>
+          <h4 className="text-[0.8rem] font-medium leading-snug pl-2">{item.title}</h4>
         </div>
       </div>
       {expanded && (
-        <div className="px-3 pb-2.5 border-t border-border/50 pt-2 space-y-2">
-          {item.summary && <p className="text-xs text-muted-foreground leading-relaxed italic">{item.summary}</p>}
+        <div className="pl-5 pr-2 pb-2 border-t border-border/40 pt-1.5 space-y-1.5">
+          {item.summary && <p className="text-[0.75rem] text-muted-foreground leading-relaxed italic">{item.summary}</p>}
           {item.content && (
-            <div className="text-xs text-foreground/80 leading-relaxed max-h-40 overflow-y-auto">
+            <div className="text-[0.75rem] text-foreground/80 leading-relaxed max-h-40 overflow-y-auto">
               {stripHtml(item.content).slice(0, 600)}{stripHtml(item.content).length > 600 && '...'}
             </div>
           )}
@@ -73,27 +57,34 @@ export default function Digest({ dims }: Props) {
   const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed/digest?limit=10', 120000);
   const size = dims?.size ?? 'medium';
   const h = dims?.h ?? 3;
-  const rh = dims?.rowHeightPx ?? 100;
+  const rh = dims?.rowHeightPx ?? 80;
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading digest...</div>;
-  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
-  if (!data || data.items.length === 0) {
-    return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No digest items yet</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error</div>;
+  if (!data || data.items.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No digest yet</div>;
+
+  if (size === 'small') {
+    const max = itemsForHeight(h, rh, 24);
+    return (
+      <div className="flex flex-col overflow-hidden h-full">
+        <div className="flex-1 overflow-y-auto">
+          {data.items.slice(0, max).map((item) => (
+            <div key={item.id} className="py-1 border-b border-border/30 last:border-0 truncate">
+              <span className="text-[0.7rem] text-foreground cursor-pointer hover:text-primary" title={item.title}
+                onClick={() => item.url && window.open(item.url, '_blank')}>{item.title}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  const isSmall = size === 'small';
-  const perItemPx = isSmall ? 30 : 52;
-  const maxItems = Math.min(10, itemsForHeight(h, rh, perItemPx));
+  const maxItems = Math.min(10, itemsForHeight(h, rh, 48));
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between mb-1">
-        <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{data.items.length} items</Badge>
-      </div>
       <div className="flex-1 overflow-y-auto flex flex-col gap-1">
-        {data.items.slice(0, maxItems).map((item) => (
-          <DigestItem key={item.id} item={item} small={isSmall} />
-        ))}
+        {data.items.slice(0, maxItems).map((item) => <DigestItem key={item.id} item={item} />)}
       </div>
     </div>
   );
