@@ -1,6 +1,7 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
+import { itemsForHeight } from '../../lib/widget-size';
 import type { WidgetDimensions } from '../../lib/widget-size';
 import type { FeedResponse, FeedItem } from '../../types';
 
@@ -50,6 +51,8 @@ interface Props { dims?: WidgetDimensions }
 export default function StockTicker({ dims }: Props) {
   const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed?source=stock&limit=20', 30000);
   const size = dims?.size ?? 'medium';
+  const h = dims?.h ?? 2;
+  const rh = dims?.rowHeightPx ?? 100;
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading stocks...</div>;
   if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
@@ -57,21 +60,13 @@ export default function StockTicker({ dims }: Props) {
     return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
   }
 
-  if (size === 'compact') {
-    return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Stocks</h2>
-        {data.items.slice(0, 3).map((item) => <StockItemRow key={item.id} item={item} compact />)}
-      </div>
-    );
-  }
-
-  const maxItems = size === 'small' ? 5 : size === 'medium' ? 8 : 20;
-  const useCompact = size === 'small';
+  const useCompact = size === 'compact' || size === 'small';
+  const perItemPx = useCompact ? 22 : 40;
+  const maxItems = Math.min(20, itemsForHeight(h, rh, perItemPx));
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stocks</h2>
         <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{data.items.length}</Badge>
       </div>

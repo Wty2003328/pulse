@@ -73,11 +73,11 @@ export default function Dashboard() {
     localStorage.setItem('dashboard-layout-v2', JSON.stringify(newLayout));
   };
 
-  // Build a map of widget id -> {w, h, size}
+  // Build a map of widget id -> {w, h, size, rowHeightPx}
   const widgetDims = useMemo(() => {
-    const map: Record<string, { w: number; h: number; size: ReturnType<typeof getWidgetSize> }> = {};
+    const map: Record<string, { w: number; h: number; size: ReturnType<typeof getWidgetSize>; rowHeightPx: number }> = {};
     for (const item of layout) {
-      map[item.i] = { w: item.w, h: item.h, size: getWidgetSize(item.w, item.h) };
+      map[item.i] = { w: item.w, h: item.h, size: getWidgetSize(item.w, item.h), rowHeightPx: rowHeight };
     }
     return map;
   }, [layout]);
