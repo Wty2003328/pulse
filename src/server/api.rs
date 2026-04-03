@@ -6,7 +6,6 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 use super::AppState;
 use crate::scheduler;
@@ -16,6 +15,7 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/health", get(health))
         .route("/feed", get(get_feed))
+        .route("/feed/digest", get(get_digest))
         .route("/collectors", get(get_collectors))
         .route("/collectors/{id}/run", post(trigger_collector))
 }
@@ -59,6 +59,26 @@ async fn get_feed(
         "count": items.len(),
         "limit": query.limit,
         "offset": query.offset,
+    })))
+}
+
+// --- Digest (AI-curated top items) ---
+
+async fn get_digest(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    // Get items sorted by highest AI score
+    let items = state
+        .db
+        .get_digest(10)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({
+        "items": items,
+        "count": items.len(),
+        "limit": 10,
+        "offset": 0,
     })))
 }
 

@@ -1,0 +1,226 @@
+PHASE 3 INTELLIGENCE PIPELINE - FILES CREATED/MODIFIED
+======================================================
+
+NEW RUST SOURCE FILES (6 files, 784 lines total)
+================================================
+
+1. src/intelligence/local_llm.rs (94 lines)
+   - Ollama HTTP integration
+   - Relevance scoring (0-10 scale)
+   - Health checks
+   - LocalLLM struct with generate() and score_relevance() methods
+
+2. src/intelligence/remote_llm.rs (154 lines)
+   - Claude and OpenAI support
+   - RemoteLLM enum with provider selection
+   - API request/response handling
+   - Unified generate() interface
+
+3. src/intelligence/scorer.rs (179 lines)
+   - Two-stage scoring pipeline
+   - Scorer struct implementing score_item() and deep_score()
+   - Fallback logic for missing LLMs
+   - Relevance threshold filtering
+
+4. src/intelligence/summarizer.rs (32 lines)
+   - Article summarization module
+   - Summarizer with summarize() method
+   - 1-2 sentence summary generation
+
+5. src/intelligence/tagger.rs (54 lines)
+   - Auto-tagging engine
+   - Tagger with auto_tag() method
+   - 3-5 tag generation
+   - JSON parsing with fallback
+
+6. src/intelligence/mod.rs (223 lines)
+   - Main orchestrator (IntelligencePipeline struct)
+   - Two-stage pipeline implementation
+   - Budget tracking and enforcement
+   - Batch processing logic
+   - Health checks for both LLM providers
+
+MODIFIED FILES (1 file)
+======================
+
+1. src/storage/mod.rs
+   - Added insert_score(&self, score: &Score) -> Result<()>
+   - Added insert_summary(&self, summary: &Summary) -> Result<()>
+   - Added insert_tag(&self, tag: &Tag) -> Result<()>
+   - Updated imports to include Score, Summary, Tag
+
+DOCUMENTATION FILES (4 files)
+=============================
+
+1. PHASE3_SUMMARY.md
+   - Complete implementation overview
+   - Design decisions and rationale
+   - API integration details
+   - Testing strategy and production readiness
+
+2. INTELLIGENCE_PIPELINE_PHASE3.md
+   - Detailed architecture documentation
+   - Module descriptions with code examples
+   - Configuration reference
+   - Processing flow diagrams
+   - Error handling strategies
+
+3. IMPLEMENTATION_CHECKLIST.md
+   - File-by-file verification checklist
+   - Architecture compliance verification
+   - Code quality assessment
+   - Testing readiness
+   - Deployment checklist
+
+4. QUICK_START.md
+   - 30-second overview
+   - Configuration examples
+   - Monitoring and troubleshooting
+   - Performance tips
+   - Example workflows
+
+5. FILES_CREATED.txt (this file)
+   - Directory of all changes
+
+TOTAL DELIVERABLES
+==================
+
+Source Code: 6 new files, 1 modified file = 784 lines of Rust
+Documentation: 4 comprehensive guides
+Configuration: Ready-to-use config.toml examples
+Database: 3 new methods for persistence
+
+PROJECT STRUCTURE
+=================
+
+/mnt/pulse/src/intelligence/
+├── mod.rs                 ← Main orchestrator
+├── local_llm.rs          ← Ollama integration
+├── remote_llm.rs         ← Claude/OpenAI integration
+├── scorer.rs             ← Two-stage scoring
+├── summarizer.rs         ← Summarization engine
+└── tagger.rs             ← Auto-tagging engine
+
+/mnt/pulse/src/storage/
+└── mod.rs                ← Updated with 3 new insert methods
+
+CONFIGURATION TEMPLATE
+======================
+
+[intelligence]
+enabled = true
+
+[intelligence.local]
+enabled = true
+provider = "ollama"
+model = "llama3:8b"
+endpoint = "http://localhost:11434"
+relevance_threshold = 4
+
+[intelligence.remote]
+enabled = true
+provider = "claude"
+api_key = "sk-ant-..."  # Set via PULSE_INTELLIGENCE_REMOTE_API_KEY env var
+max_daily_calls = 100
+batch_size = 10
+
+[[interests]]
+name = "Rust Programming"
+description = "Articles about Rust language and systems programming"
+priority = "high"
+
+[[interests]]
+name = "AI/ML"
+description = "Articles about artificial intelligence and machine learning"
+priority = "medium"
+
+KEY FEATURES
+============
+
+✓ Two-stage pipeline (cheap local + powerful remote)
+✓ Budget tracking and enforcement
+✓ Graceful degradation if components unavailable
+✓ Configurable thresholds and models
+✓ Batch processing for efficiency
+✓ Structured logging with tracing
+✓ Strong type safety with enums and UUIDs
+✓ Database persistence of scores, summaries, tags
+✓ Zero new dependencies (uses existing Cargo.toml)
+✓ Production-ready error handling
+
+DEPENDENCIES USED
+=================
+
+All from existing Cargo.toml:
+- anyhow (error handling)
+- async-trait (async traits)
+- chrono (timestamps)
+- serde / serde_json (serialization)
+- reqwest (HTTP client with rustls-tls)
+- tracing (structured logging)
+- tokio (async runtime)
+- uuid (ID generation)
+- sqlx (database)
+
+INTEGRATION POINTS
+==================
+
+1. Configuration System
+   - Uses IntelligenceConfig, LocalLlmConfig, RemoteLlmConfig
+   - Already defined in src/config/types.rs
+   - Supports TOML/YAML loading
+
+2. Storage Layer
+   - Uses Database struct from src/storage/mod.rs
+   - Inserts to items, scores, summaries, tags tables
+   - Already defined schemas in migrations
+
+3. Models
+   - Uses RawItem, Score, Summary, Tag from src/storage/models.rs
+   - Already defined with Serialize/Deserialize
+
+4. CLI/Main
+   - Ready to integrate into main.rs scheduler
+   - Can instantiate IntelligencePipeline in background task
+
+DATABASE SCHEMA
+===============
+
+Pre-existing tables that intelligences pipeline populates:
+
+scores table:
+  id TEXT PRIMARY KEY
+  item_id TEXT FOREIGN KEY
+  interest_name TEXT
+  score REAL
+  reasoning TEXT
+  model_used TEXT
+  scored_at TEXT
+
+summaries table:
+  id TEXT PRIMARY KEY
+  item_id TEXT FOREIGN KEY
+  summary TEXT
+  model_used TEXT
+  created_at TEXT
+
+tags table:
+  item_id TEXT FOREIGN KEY
+  tag TEXT
+  PRIMARY KEY (item_id, tag)
+
+NEXT STEPS
+==========
+
+1. Review QUICK_START.md for setup instructions
+2. Create config.toml with intelligence section
+3. Set PULSE_INTELLIGENCE_REMOTE_API_KEY environment variable
+4. Start Ollama (if using local LLM)
+5. Test with: RUST_LOG=pulse=debug cargo run
+6. Monitor logs for "connected and healthy" messages
+7. Check database with sqlite3 for stored results
+
+For more details:
+- PHASE3_SUMMARY.md - Complete overview and design
+- INTELLIGENCE_PIPELINE_PHASE3.md - Detailed architecture
+- IMPLEMENTATION_CHECKLIST.md - Verification and testing

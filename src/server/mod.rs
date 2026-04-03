@@ -1,17 +1,20 @@
 pub mod api;
+pub mod ws;
 
-use axum::Router;
+use axum::{routing::get, Router};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
 use crate::collectors::Collector;
 use crate::storage::Database;
+use ws::WsBroadcast;
 
 /// Shared application state accessible from all route handlers.
 #[derive(Clone)]
 pub struct AppState {
     pub db: Database,
     pub collectors: Vec<Arc<dyn Collector>>,
+    pub ws_broadcast: WsBroadcast,
 }
 
 /// Build the Axum router with all routes and middleware.
@@ -20,6 +23,7 @@ pub fn build_router(state: AppState) -> Router {
 
     Router::new()
         .nest("/api", api_routes)
+        .route("/api/ws", get(ws::ws_handler))
         .fallback(serve_frontend)
         .layer(CorsLayer::permissive())
         .with_state(state)
@@ -29,10 +33,8 @@ pub fn build_router(state: AppState) -> Router {
 async fn serve_frontend(
     uri: axum::http::Uri,
 ) -> impl axum::response::IntoResponse {
-    // Try to find the requested file in embedded assets
     let path = uri.path().trim_start_matches('/');
 
-    // For SPA routing: if the path doesn't look like a file, serve index.html
     if let Some(content) = FrontendAssets::get(path) {
         let mime = mime_guess::from_path(path).first_or_octet_stream();
         (
@@ -60,8 +62,6 @@ async fn serve_frontend(
 
 use axum::response::IntoResponse;
 
-/// Embedded frontend assets (built React app).
-/// In development, this folder may be empty — that's fine.
 #[derive(rust_embed::Embed)]
 #[folder = "web/dist"]
 #[allow(dead_code)]

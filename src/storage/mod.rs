@@ -7,7 +7,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use models::{FeedItem, Item, RawItem, CollectorRun};
+use models::{FeedItem, Item, RawItem, CollectorRun, Score, Summary, Tag};
 
 #[derive(Clone)]
 pub struct Database {
@@ -283,6 +283,47 @@ impl Database {
         }).collect())
     }
 
+    /// Get top items sorted by AI score (for the digest endpoint).
+    pub async fn get_digest(&self, limit: u32) -> Result<Vec<FeedItem>> {
+        let query = format!(
+            "SELECT i.*, s.summary, sc.score FROM items i
+             LEFT JOIN summaries s ON s.item_id = i.id
+             INNER JOIN (SELECT item_id, MAX(score) as score FROM scores GROUP BY item_id) sc ON sc.item_id = i.id
+             ORDER BY sc.score DESC LIMIT {}",
+            limit
+        );
+
+        let rows = sqlx::query_as::<_, (
+            String, String, String, String, Option<String>, Option<String>,
+            String, Option<String>, String, Option<String>, Option<f64>,
+        )>(&query)
+            .fetch_all(&self.pool)
+            .await?;
+
+        let mut items = Vec::new();
+        for row in rows {
+            let tags = self.get_tags(&row.0).await.unwrap_or_default();
+            items.push(FeedItem {
+                id: row.0,
+                source: row.1,
+                collector_id: row.2,
+                title: row.3,
+                url: row.4,
+                content: row.5,
+                summary: row.9,
+                metadata: serde_json::from_str(&row.6).unwrap_or_default(),
+                tags,
+                score: row.10,
+                published_at: row.7.and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))),
+                collected_at: chrono::DateTime::parse_from_rfc3339(&row.8)
+                    .map(|d| d.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now()),
+            });
+        }
+
+        Ok(items)
+    }
+
     /// Prune items older than the given number of days.
     pub async fn prune_old_items(&self, retention_days: u32) -> Result<u64> {
         let cutoff = (Utc::now() - chrono::Duration::days(retention_days as i64)).to_rfc3339();
@@ -291,5 +332,53 @@ impl Database {
             .execute(&self.pool)
             .await?;
         Ok(result.rows_affected())
+    }
+
+    /// Insert a relevance score for an item.
+    pub async fn insert_score(&self, score: &Score) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        sqlx::query(
+            "INSERT INTO scores (id, item_id, interest_name, score, reasoning, model_used, scored_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(&score.id)
+        .bind(&score.item_id)
+        .bind(&score.interest_name)
+        .bind(score.score)
+        .bind(&score.reasoning)
+        .bind(&score.model_used)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Insert a summary for an item.
+    pub async fn insert_summary(&self, summary: &Summary) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        sqlx::query(
+            "INSERT INTO summaries (id, item_id, summary, model_used, created_at)
+             VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind(&summary.id)
+        .bind(&summary.item_id)
+        .bind(&summary.summary)
+        .bind(&summary.model_used)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Insert a tag for an item.
+    pub async fn insert_tag(&self, tag: &Tag) -> Result<()> {
+        sqlx::query(
+            "INSERT OR IGNORE INTO tags (item_id, tag) VALUES (?, ?)"
+        )
+        .bind(&tag.item_id)
+        .bind(&tag.tag)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }
