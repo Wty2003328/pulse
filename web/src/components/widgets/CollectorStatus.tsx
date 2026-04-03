@@ -14,45 +14,38 @@ export default function CollectorStatus({ dims }: Props) {
   const rh = dims?.rowHeightPx ?? 100;
 
   const triggerCollector = async (id: string) => {
-    try {
-      await fetch(`/api/collectors/${id}/run`, { method: 'POST' });
-      setTimeout(refetch, 2000);
-    } catch (err) {
-      console.error('Failed to trigger collector:', err);
-    }
+    try { await fetch(`/api/collectors/${id}/run`, { method: 'POST' }); setTimeout(refetch, 2000); }
+    catch (err) { console.error('Failed to trigger collector:', err); }
   };
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading collectors...</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading...</div>;
   if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
   if (!data) return null;
 
-  // Compact: colored dots + names
-  if (size === 'compact') {
-    const maxItems = itemsForHeight(h, rh, 20);
+  const showButtons = size !== 'small';
+  const perItemPx = showButtons ? 64 : 32;
+  const maxItems = itemsForHeight(h, rh, perItemPx);
+
+  if (size === 'small') {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Collectors</h2>
-        <div className="flex flex-col gap-1">
-          {data.collectors.slice(0, maxItems).map((c) => (
-            <div key={c.id} className="flex items-center gap-1.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${c.enabled ? 'bg-success' : 'bg-muted-foreground'}`} />
-              <span className="text-[0.65rem] text-foreground truncate">{c.name}</span>
+      <div className="flex flex-col h-full overflow-y-auto gap-1">
+        {data.collectors.slice(0, maxItems).map((c) => {
+          const lastRun = data.recent_runs.find((r) => r.collector_id === c.id);
+          return (
+            <div key={c.id} className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+              <span className="text-xs font-medium truncate">{c.name}</span>
+              <Badge variant={c.enabled ? (lastRun?.status === 'error' ? 'destructive' : 'success') : 'secondary'} className="text-[0.55rem] px-1 py-0">
+                {c.enabled ? (lastRun?.status ?? 'idle') : 'off'}
+              </Badge>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
   }
 
-  const showButtons = size === 'large' || size === 'medium';
-  const perItemPx = showButtons ? 72 : 36;
-  const maxItems = itemsForHeight(h, rh, perItemPx);
-
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collectors</h2>
-      </div>
       <div className="flex-1 overflow-y-auto flex flex-col gap-2">
         {data.collectors.slice(0, maxItems).map((collector) => {
           const lastRun = data.recent_runs.find((r) => r.collector_id === collector.id);
@@ -70,7 +63,7 @@ export default function CollectorStatus({ dims }: Props) {
                   <span className="text-[0.6rem] text-muted-foreground">{lastRun.items_count} items</span>
                 </div>
               )}
-              {collector.enabled && showButtons && (
+              {collector.enabled && (
                 <Button variant="outline" size="sm" className="w-full h-6 text-[0.65rem]" onClick={() => triggerCollector(collector.id)}>Run Now</Button>
               )}
             </div>

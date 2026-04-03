@@ -11,12 +11,7 @@ interface WeatherMetadata {
   humidity?: number;
   wind_mph?: number;
   wind_kph?: number;
-  forecast?: Array<{
-    day: string;
-    high_f: number;
-    low_f: number;
-    description: string;
-  }>;
+  forecast?: Array<{ day: string; high_f: number; low_f: number; description: string }>;
 }
 
 interface Props { dims?: WidgetDimensions }
@@ -32,79 +27,41 @@ export default function Weather({ dims }: Props) {
   }
 
   const metadata = data.items[0].metadata as unknown as WeatherMetadata;
-
-  // Compact: just temp + description
-  if (size === 'compact') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-1">
-        <span className="text-2xl font-bold text-foreground">{Math.round(metadata.temp_f)}°</span>
-        <span className="text-[0.65rem] text-muted-foreground text-center leading-tight">{metadata.description}</span>
-      </div>
-    );
-  }
-
-  // Small: temp + details
-  if (size === 'small') {
-    return (
-      <div className="flex flex-col h-full">
-        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Weather</h2>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl font-bold text-foreground">{Math.round(metadata.temp_f)}°<span className="text-xs text-muted-foreground ml-0.5">F</span></span>
-          <div>
-            <div className="text-xs text-muted-foreground">{metadata.description}</div>
-            {metadata.feels_like_f !== undefined && <div className="text-[0.65rem] text-muted-foreground">Feels {Math.round(metadata.feels_like_f)}°</div>}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          {metadata.humidity !== undefined && (
-            <div><span className="text-muted-foreground">Humidity </span><span className="font-semibold">{metadata.humidity}%</span></div>
-          )}
-          {metadata.wind_mph !== undefined && (
-            <div><span className="text-muted-foreground">Wind </span><span className="font-semibold">{Math.round(metadata.wind_mph)} mph</span></div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Medium/Large: temp + details + forecast
-  const forecastCount = size === 'large' ? 5 : 3;
+  const showForecast = size !== 'small';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Weather</h2>
-
       <div className="flex items-center gap-3 mb-2">
         <div className="flex items-baseline gap-0.5">
-          <span className="text-3xl font-bold text-foreground">{Math.round(metadata.temp_f)}°</span>
+          <span className="text-2xl font-bold text-foreground">{Math.round(metadata.temp_f)}°</span>
           <span className="text-xs text-muted-foreground font-medium">F</span>
         </div>
         <div className="flex-1">
           <div className="text-xs text-muted-foreground">{metadata.description}</div>
-          {metadata.feels_like_f !== undefined && <div className="text-[0.65rem] text-muted-foreground">Feels like {Math.round(metadata.feels_like_f)}°</div>}
+          {metadata.feels_like_f !== undefined && <div className="text-[0.65rem] text-muted-foreground">Feels {Math.round(metadata.feels_like_f)}°</div>}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 py-2 border-y border-border mb-2">
+      <div className="grid grid-cols-2 gap-2 py-2 border-y border-border/50 mb-2">
         {metadata.humidity !== undefined && (
           <div className="flex flex-col">
             <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider">Humidity</span>
-            <span className="text-xs font-semibold text-foreground">{metadata.humidity}%</span>
+            <span className="text-xs font-semibold">{metadata.humidity}%</span>
           </div>
         )}
         {metadata.wind_mph !== undefined && (
           <div className="flex flex-col">
             <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider">Wind</span>
-            <span className="text-xs font-semibold text-foreground">{Math.round(metadata.wind_mph)} mph</span>
+            <span className="text-xs font-semibold">{Math.round(metadata.wind_mph)} mph</span>
           </div>
         )}
       </div>
 
-      {metadata.forecast && metadata.forecast.length > 0 && (
+      {showForecast && metadata.forecast && metadata.forecast.length > 0 && (
         <div className="flex-1 overflow-y-auto">
           <div className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Forecast</div>
           <div className="flex flex-col gap-1">
-            {metadata.forecast.slice(0, forecastCount).map((day, idx) => (
+            {metadata.forecast.slice(0, 5).map((day, idx) => (
               <div key={idx} className="grid grid-cols-[50px_1fr_1fr] items-center gap-1.5 p-1.5 bg-muted rounded text-[0.7rem]">
                 <span className="font-semibold text-muted-foreground">{day.day}</span>
                 <div className="flex gap-1.5 justify-center">

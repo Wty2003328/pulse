@@ -13,35 +13,33 @@ interface StockMetadata {
   direction: 'up' | 'down' | 'neutral';
 }
 
-function StockItemRow({ item, compact }: { item: FeedItem; compact?: boolean }) {
+function StockItemRow({ item, small }: { item: FeedItem; small?: boolean }) {
   const m = item.metadata as unknown as StockMetadata;
   const pos = m.direction === 'up';
   const neg = m.direction === 'down';
+  const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
 
-  if (compact) {
+  if (small) {
     return (
-      <div className="flex items-center justify-between py-0.5">
-        <span className="text-[0.7rem] font-bold uppercase">{m.symbol}</span>
-        <span className={cn('text-[0.7rem] font-semibold', pos && 'text-success', neg && 'text-destructive', !pos && !neg && 'text-muted-foreground')}>
-          ${m.price.toFixed(2)}
-        </span>
+      <div className="flex items-center justify-between py-1 border-b border-border/50 last:border-0">
+        <span className="text-xs font-bold uppercase">{m.symbol}</span>
+        <div className="flex items-center gap-2">
+          <span className={cn('text-xs font-semibold', color)}>${m.price.toFixed(2)}</span>
+          <span className={cn('text-[0.65rem]', color)}>{pos ? '+' : ''}{m.change_percent.toFixed(1)}%</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-between p-2 bg-muted rounded-md transition-colors hover:bg-accent/50">
+    <div className="flex items-center justify-between p-2 bg-muted rounded-md hover:bg-accent/40 transition-colors">
       <div className="flex items-baseline gap-2 flex-1">
         <span className="text-xs font-bold uppercase text-foreground min-w-[40px]">{m.symbol}</span>
-        <span className={cn('text-xs font-semibold', pos && 'text-success', neg && 'text-destructive', !pos && !neg && 'text-muted-foreground')}>
-          ${m.price.toFixed(2)}
-        </span>
+        <span className={cn('text-xs font-semibold', color)}>${m.price.toFixed(2)}</span>
       </div>
-      <div className="flex items-center gap-1 text-[0.65rem] font-medium">
-        <span className={cn('px-1 py-0.5 rounded', pos && 'text-success bg-success/10', neg && 'text-destructive bg-destructive/10', !pos && !neg && 'text-muted-foreground bg-muted')}>
-          {pos ? '+' : ''}{m.change_percent.toFixed(1)}%
-        </span>
-      </div>
+      <span className={cn('text-[0.65rem] font-medium px-1.5 py-0.5 rounded', pos && 'bg-success/10', neg && 'bg-destructive/10')}>
+        <span className={color}>{pos ? '+' : ''}{m.change_percent.toFixed(1)}%</span>
+      </span>
     </div>
   );
 }
@@ -60,19 +58,18 @@ export default function StockTicker({ dims }: Props) {
     return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
   }
 
-  const useCompact = size === 'compact' || size === 'small';
-  const perItemPx = useCompact ? 22 : 40;
+  const isSmall = size === 'small';
+  const perItemPx = isSmall ? 28 : 40;
   const maxItems = Math.min(20, itemsForHeight(h, rh, perItemPx));
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stocks</h2>
         <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{data.items.length}</Badge>
       </div>
       <div className="flex-1 overflow-y-auto flex flex-col gap-1">
         {data.items.slice(0, maxItems).map((item) => (
-          <StockItemRow key={item.id} item={item} compact={useCompact} />
+          <StockItemRow key={item.id} item={item} small={isSmall} />
         ))}
       </div>
     </div>

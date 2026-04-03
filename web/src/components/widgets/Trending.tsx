@@ -9,24 +9,20 @@ function TrendingTag({ tag, count, maxCount, small }: { tag: string; count: numb
 
   if (small) {
     return (
-      <span
-        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/8 border border-primary/20 rounded text-primary text-[0.65rem] font-medium"
-        style={{ opacity: 0.6 + (intensity / 100) * 0.4 }}
-      >
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/8 border border-primary/20 rounded text-primary text-[0.65rem] font-medium"
+        style={{ opacity: 0.6 + (intensity / 100) * 0.4 }}>
         {tag}
       </span>
     );
   }
 
-  const scale = 0.75 + (intensity / 100) * 0.35;
+  const scale = 0.75 + (intensity / 100) * 0.3;
   return (
-    <div
-      className="inline-flex items-center gap-1 px-2 py-1 bg-primary/8 border border-primary/20 rounded-md text-primary font-medium transition-all hover:bg-primary/15 hover:border-primary hover:scale-105 cursor-default"
+    <div className="inline-flex items-center gap-1 px-2 py-1 bg-primary/8 border border-primary/20 rounded-md text-primary font-medium hover:bg-primary/15 hover:border-primary transition-all cursor-default"
       style={{ fontSize: `${scale}rem`, opacity: 0.6 + (intensity / 100) * 0.4 }}
-      title={`${count} items`}
-    >
+      title={`${count} items`}>
       {tag}
-      <span className="text-[0.55rem] text-muted-foreground bg-muted px-0.5 py-0 rounded">{count}</span>
+      <span className="text-[0.55rem] text-muted-foreground bg-muted px-0.5 rounded">{count}</span>
     </div>
   );
 }
@@ -40,9 +36,7 @@ export default function Trending({ dims }: Props) {
   const trendingTags = useMemo(() => {
     if (!data || !data.items) return [];
     const tagMap = new Map<string, number>();
-    data.items.forEach((item) => {
-      item.tags.forEach((tag) => tagMap.set(tag, (tagMap.get(tag) || 0) + 1));
-    });
+    data.items.forEach((item) => { item.tags.forEach((tag) => tagMap.set(tag, (tagMap.get(tag) || 0) + 1)); });
     return Array.from(tagMap.entries())
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => b.count - a.count)
@@ -56,18 +50,17 @@ export default function Trending({ dims }: Props) {
   }
 
   const maxCount = Math.max(...trendingTags.map((t) => t.count));
-  const maxTags = size === 'compact' ? 5 : size === 'small' ? 10 : size === 'medium' ? 20 : 30;
-  const useSmall = size === 'compact' || size === 'small';
+  const isSmall = size === 'small';
+  const maxTags = isSmall ? 12 : 30;
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trending</h2>
-        {size !== 'compact' && <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{trendingTags.length}</Badge>}
+      <div className="flex items-center justify-between mb-1">
+        <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{trendingTags.length}</Badge>
       </div>
       <div className="flex-1 overflow-y-auto flex flex-wrap gap-1.5 content-start">
         {trendingTags.slice(0, maxTags).map((item) => (
-          <TrendingTag key={item.tag} tag={item.tag} count={item.count} maxCount={maxCount} small={useSmall} />
+          <TrendingTag key={item.tag} tag={item.tag} count={item.count} maxCount={maxCount} small={isSmall} />
         ))}
       </div>
     </div>
