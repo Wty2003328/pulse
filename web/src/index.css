@@ -58,67 +58,31 @@
   transition: height 200ms ease;
 }
 .react-grid-item {
-  transition: all 200ms ease;
-  transition-property: left, top, width, height;
+  transition: none;
 }
 .react-grid-item.cssTransforms {
-  transition-property: transform, width, height;
+  transition: transform 150ms ease, width 150ms ease, height 150ms ease;
 }
 .react-grid-item.resizing {
-  transition: none;
+  transition: none !important;
   z-index: 1;
-  will-change: width, height;
 }
 .react-grid-item.react-draggable-dragging {
-  transition: none;
+  transition: none !important;
   z-index: 3;
-  will-change: transform;
 }
-/* Resize handles — all four corners */
+/* Resize handles — invisible but functional on all four corners */
 .react-grid-item > .react-resizable-handle {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   background: transparent;
   z-index: 10;
 }
-.react-grid-item > .react-resizable-handle::after {
-  content: '';
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  background: var(--color-primary);
-  opacity: 0;
-  transition: opacity 0.15s;
-  border-radius: 1px;
-}
-.react-grid-item:hover > .react-resizable-handle::after {
-  opacity: 0.5;
-}
-.react-grid-item > .react-resizable-handle-se {
-  bottom: 0; right: 0; cursor: se-resize;
-}
-.react-grid-item > .react-resizable-handle-se::after {
-  bottom: 3px; right: 3px;
-}
-.react-grid-item > .react-resizable-handle-sw {
-  bottom: 0; left: 0; cursor: sw-resize;
-}
-.react-grid-item > .react-resizable-handle-sw::after {
-  bottom: 3px; left: 3px;
-}
-.react-grid-item > .react-resizable-handle-ne {
-  top: 0; right: 0; cursor: ne-resize;
-}
-.react-grid-item > .react-resizable-handle-ne::after {
-  top: 3px; right: 3px;
-}
-.react-grid-item > .react-resizable-handle-nw {
-  top: 0; left: 0; cursor: nw-resize;
-}
-.react-grid-item > .react-resizable-handle-nw::after {
-  top: 3px; left: 3px;
-}
+.react-grid-item > .react-resizable-handle-se { bottom: 0; right: 0; cursor: se-resize; }
+.react-grid-item > .react-resizable-handle-sw { bottom: 0; left: 0; cursor: sw-resize; }
+.react-grid-item > .react-resizable-handle-ne { top: 0; right: 0; cursor: ne-resize; }
+.react-grid-item > .react-resizable-handle-nw { top: 0; left: 0; cursor: nw-resize; }
 .react-grid-placeholder {
   background: var(--color-secondary);
   opacity: 0.3;

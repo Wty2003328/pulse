@@ -18,12 +18,12 @@ const GAP = 10;
 const PADDING = 16;
 
 const defaultLayout: Layout[] = [
-  { i: 'feed',       x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'digest',     x: 3, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'weather',    x: 0, y: 4, w: 2, h: 2, minW: 2, minH: 2 },
-  { i: 'stocks',     x: 2, y: 4, w: 2, h: 2, minW: 2, minH: 2 },
-  { i: 'trending',   x: 3, y: 3, w: 3, h: 2, minW: 2, minH: 2 },
-  { i: 'collectors', x: 4, y: 4, w: 2, h: 2, minW: 2, minH: 2 },
+  { i: 'feed',       x: 0, y: 0, w: 3, h: 4, minW: 1, minH: 1 },
+  { i: 'digest',     x: 3, y: 0, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'weather',    x: 0, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
+  { i: 'stocks',     x: 2, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
+  { i: 'trending',   x: 3, y: 3, w: 3, h: 2, minW: 1, minH: 1 },
+  { i: 'collectors', x: 4, y: 4, w: 2, h: 2, minW: 1, minH: 1 },
 ];
 
 function loadLayout(): Layout[] {
