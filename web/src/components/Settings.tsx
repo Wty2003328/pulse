@@ -1,33 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Cpu } from 'lucide-react';
-import { PROVIDERS } from '../lib/providers';
-import { ProviderCard } from './settings/ProviderCard';
-import type { ProviderSetting } from '../types';
+import { ArrowLeft, Cpu, LayoutDashboard, Database, Rss, Info } from 'lucide-react';
+import { cn } from '../lib/utils';
+import { ModelsPanel } from './settings/ModelsPanel';
+import { GeneralPanel } from './settings/GeneralPanel';
+import { DataSourcesPanel } from './settings/DataSourcesPanel';
+import { AboutPanel } from './settings/AboutPanel';
+
+type SettingsTab = 'general' | 'models' | 'sources' | 'about';
+
+const TABS: { id: SettingsTab; label: string; icon: React.ElementType }[] = [
+  { id: 'general', label: 'General', icon: LayoutDashboard },
+  { id: 'models', label: 'AI Models', icon: Cpu },
+  { id: 'sources', label: 'Data Sources', icon: Rss },
+  { id: 'about', label: 'About', icon: Info },
+];
 
 export default function Settings() {
-  const [providers, setProviders] = useState<ProviderSetting[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('models');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-  const fetchProviders = async () => {
-    try {
-      const res = await fetch('/api/settings/providers');
-      if (res.ok) {
-        const data = await res.json();
-        setProviders(data.providers);
-      }
-    } catch {
-      // API may not exist yet, use empty defaults
-      setProviders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProviders();
-  }, []);
 
   useEffect(() => {
     if (toast) {
@@ -40,13 +31,9 @@ export default function Settings() {
     setToast({ message, type });
   };
 
-  const getProviderSetting = (id: string): ProviderSetting | undefined => {
-    return providers.find((p) => p.id === id);
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex items-center gap-4 px-6 py-4 bg-card border-b border-border">
+    <div className="min-h-screen bg-background flex flex-col">
+      <header className="flex items-center gap-4 px-6 py-3 bg-card border-b border-border shrink-0">
         <Link
           to="/"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors no-underline"
@@ -55,49 +42,51 @@ export default function Settings() {
           <span>Dashboard</span>
         </Link>
         <div className="h-4 w-px bg-border" />
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Settings</h1>
+        <h1 className="text-lg font-bold tracking-tight text-foreground">Settings</h1>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Cpu className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">AI Providers</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Configure API keys for AI providers that power the intelligence pipeline.
-            Set one provider as active to enable AI-powered scoring, summarization, and tagging.
-          </p>
-        </div>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <nav className="w-56 shrink-0 border-r border-border bg-card/50 p-3 flex flex-col gap-1">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left w-full cursor-pointer',
+                  activeTab === tab.id
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                )}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="h-64 rounded-lg bg-card border border-border animate-pulse" />
-            ))}
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-3xl">
+            {activeTab === 'general' && <GeneralPanel onToast={showToast} />}
+            {activeTab === 'models' && <ModelsPanel onToast={showToast} />}
+            {activeTab === 'sources' && <DataSourcesPanel onToast={showToast} />}
+            {activeTab === 'about' && <AboutPanel />}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {PROVIDERS.map((meta) => (
-              <ProviderCard
-                key={meta.id}
-                meta={meta}
-                setting={getProviderSetting(meta.id)}
-                onSaved={fetchProviders}
-                onToast={showToast}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+        </main>
+      </div>
 
-      {/* Toast notification */}
+      {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all animate-in fade-in slide-in-from-bottom-4 ${
+        <div className={cn(
+          'fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg text-sm font-medium z-50',
           toast.type === 'success'
             ? 'bg-success/15 text-success border border-success/30'
             : 'bg-destructive/15 text-destructive border border-destructive/30'
-        }`}>
+        )}>
           {toast.message}
         </div>
       )}
