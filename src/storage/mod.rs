@@ -147,6 +147,17 @@ impl Database {
         .execute(&self.pool)
         .await?;
 
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS collector_settings (
+                id TEXT PRIMARY KEY,
+                interval_secs INTEGER NOT NULL
+            );
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
         Ok(())
     }
 
@@ -384,6 +395,42 @@ impl Database {
         .bind(&summary.summary)
         .bind(&summary.model_used)
         .bind(&now)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    // --- Collector Settings ---
+
+    /// Get the interval override for a collector (if set).
+    pub async fn get_collector_interval(&self, id: &str) -> Result<Option<u64>> {
+        let row: Option<(i64,)> = sqlx::query_as(
+            "SELECT interval_secs FROM collector_settings WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|r| r.0 as u64))
+    }
+
+    /// Get all collector interval overrides.
+    pub async fn get_all_collector_intervals(&self) -> Result<Vec<(String, u64)>> {
+        let rows: Vec<(String, i64)> = sqlx::query_as(
+            "SELECT id, interval_secs FROM collector_settings"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows.into_iter().map(|(id, s)| (id, s as u64)).collect())
+    }
+
+    /// Set the interval for a collector.
+    pub async fn set_collector_interval(&self, id: &str, interval_secs: u64) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO collector_settings (id, interval_secs) VALUES (?, ?)
+             ON CONFLICT(id) DO UPDATE SET interval_secs = excluded.interval_secs"
+        )
+        .bind(id)
+        .bind(interval_secs as i64)
         .execute(&self.pool)
         .await?;
         Ok(())

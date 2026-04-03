@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post},
+    routing::{get, post, put},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,7 @@ pub fn routes() -> Router<AppState> {
         )
         .route("/providers/{id}/test", post(test_provider))
         .route("/providers/{id}/activate", post(activate_provider))
+        .route("/collectors/{id}/interval", put(set_collector_interval))
 }
 
 // --- Response types ---
@@ -248,4 +249,29 @@ async fn activate_provider(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(serde_json::json!({ "status": "activated", "provider": id })))
+}
+
+// --- Collector interval ---
+
+#[derive(Deserialize)]
+struct SetIntervalRequest {
+    interval_secs: u64,
+}
+
+async fn set_collector_interval(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<SetIntervalRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.interval_secs < 10 {
+        return Err((StatusCode::BAD_REQUEST, "Interval must be at least 10 seconds".to_string()));
+    }
+
+    state
+        .db
+        .set_collector_interval(&id, body.interval_secs)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({ "status": "saved", "collector": id, "interval_secs": body.interval_secs })))
 }

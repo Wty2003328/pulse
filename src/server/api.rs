@@ -95,14 +95,24 @@ struct CollectorInfo {
 async fn get_collectors(
     State(state): State<AppState>,
 ) -> Json<serde_json::Value> {
+    let overrides = state.db.get_all_collector_intervals().await.unwrap_or_default();
+
     let collectors: Vec<CollectorInfo> = state
         .collectors
         .iter()
-        .map(|c| CollectorInfo {
-            id: c.id().to_string(),
-            name: c.name().to_string(),
-            enabled: c.enabled(),
-            interval_secs: c.default_interval().as_secs(),
+        .map(|c| {
+            let id = c.id().to_string();
+            let interval = overrides
+                .iter()
+                .find(|(oid, _)| *oid == id)
+                .map(|(_, s)| *s)
+                .unwrap_or_else(|| c.default_interval().as_secs());
+            CollectorInfo {
+                id,
+                name: c.name().to_string(),
+                enabled: c.enabled(),
+                interval_secs: interval,
+            }
         })
         .collect();
 
