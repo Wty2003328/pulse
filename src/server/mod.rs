@@ -1,4 +1,5 @@
 pub mod api;
+pub mod settings;
 pub mod ws;
 
 use axum::{routing::get, Router};
@@ -20,9 +21,11 @@ pub struct AppState {
 /// Build the Axum router with all routes and middleware.
 pub fn build_router(state: AppState) -> Router {
     let api_routes = api::routes();
+    let settings_routes = settings::routes();
 
     Router::new()
         .nest("/api", api_routes)
+        .nest("/api/settings", settings_routes)
         .route("/api/ws", get(ws::ws_handler))
         .fallback(serve_frontend)
         .layer(CorsLayer::permissive())

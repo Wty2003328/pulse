@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: #0f1117;
+  --color-foreground: #e4e6ed;
+  --color-card: #1a1d27;
+  --color-card-foreground: #e4e6ed;
+  --color-popover: #1a1d27;
+  --color-popover-foreground: #e4e6ed;
+  --color-primary: #6c8cff;
+  --color-primary-foreground: #0f1117;
+  --color-secondary: #242836;
+  --color-secondary-foreground: #e4e6ed;
+  --color-muted: #242836;
+  --color-muted-foreground: #9399a8;
+  --color-accent: #2d3245;
+  --color-accent-foreground: #e4e6ed;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #0f1117;
+  --color-border: #2d3245;
+  --color-input: #2d3245;
+  --color-ring: #6c8cff;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --radius: 0.5rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    @apply text-primary no-underline;
+  }
+  a:hover {
+    @apply underline;
+  }
+}
+
+/* react-grid-layout base styles */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+.react-grid-item.resizing {
+  transition: none;
+  z-index: 1;
+  will-change: width, height;
+}
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  background: transparent;
+}
+.react-grid-item > .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: 1px;
+}
+.react-grid-item:hover > .react-resizable-handle::after {
+  opacity: 0.5;
+}
+.react-grid-placeholder {
+  background: var(--color-secondary);
+  opacity: 0.3;
+  border-radius: var(--radius);
+  z-index: 2;
+  border: 1px dashed var(--color-primary);
+}

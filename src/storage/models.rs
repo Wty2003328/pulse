@@ -68,6 +68,21 @@ pub struct CollectorRun {
     pub error: Option<String>,
 }
 
+/// AI provider configuration stored in the database.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderSetting {
+    pub id: String,
+    pub display_name: String,
+    pub api_key: Option<String>,
+    pub model: Option<String>,
+    pub endpoint: Option<String>,
+    pub enabled: bool,
+    pub is_active: bool,
+    pub extra_config: serde_json::Value,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 /// API response for the feed endpoint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeedItem {

@@ -1,4 +1,7 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { Badge } from '../ui/badge';
+import { cn } from '../../lib/utils';
+import type { WidgetDimensions } from '../../lib/widget-size';
 import type { FeedResponse, FeedItem } from '../../types';
 
 interface StockMetadata {
@@ -9,58 +12,72 @@ interface StockMetadata {
   direction: 'up' | 'down' | 'neutral';
 }
 
-function StockItem({ item }: { item: FeedItem }) {
-  const metadata = item.metadata as unknown as StockMetadata;
-  const isPositive = metadata.direction === 'up';
-  const isNegative = metadata.direction === 'down';
+function StockItemRow({ item, compact }: { item: FeedItem; compact?: boolean }) {
+  const m = item.metadata as unknown as StockMetadata;
+  const pos = m.direction === 'up';
+  const neg = m.direction === 'down';
 
-  const colorClass = isPositive ? 'positive' : isNegative ? 'negative' : 'neutral';
-
-  return (
-    <div className="stock-item">
-      <div className="stock-symbol-price">
-        <span className="stock-symbol">{metadata.symbol}</span>
-        <span className={`stock-price ${colorClass}`}>
-          ${metadata.price.toFixed(2)}
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between py-0.5">
+        <span className="text-[0.7rem] font-bold uppercase">{m.symbol}</span>
+        <span className={cn('text-[0.7rem] font-semibold', pos && 'text-success', neg && 'text-destructive', !pos && !neg && 'text-muted-foreground')}>
+          ${m.price.toFixed(2)}
         </span>
       </div>
-      <div className="stock-change">
-        <span className={`stock-change-value ${colorClass}`}>
-          {isPositive ? '+' : ''}{metadata.change.toFixed(2)}
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between p-2 bg-muted rounded-md transition-colors hover:bg-accent/50">
+      <div className="flex items-baseline gap-2 flex-1">
+        <span className="text-xs font-bold uppercase text-foreground min-w-[40px]">{m.symbol}</span>
+        <span className={cn('text-xs font-semibold', pos && 'text-success', neg && 'text-destructive', !pos && !neg && 'text-muted-foreground')}>
+          ${m.price.toFixed(2)}
         </span>
-        <span className={`stock-change-percent ${colorClass}`}>
-          {isPositive ? '+' : ''}{metadata.change_percent.toFixed(2)}%
+      </div>
+      <div className="flex items-center gap-1 text-[0.65rem] font-medium">
+        <span className={cn('px-1 py-0.5 rounded', pos && 'text-success bg-success/10', neg && 'text-destructive bg-destructive/10', !pos && !neg && 'text-muted-foreground bg-muted')}>
+          {pos ? '+' : ''}{m.change_percent.toFixed(1)}%
         </span>
       </div>
     </div>
   );
 }
 
-export default function StockTicker() {
-  const { data, loading, error } = useWidgetData<FeedResponse>(
-    '/api/feed?source=stock&limit=20',
-    30000
-  );
+interface Props { dims?: WidgetDimensions }
 
-  if (loading) return <div className="widget-loading">Loading stocks...</div>;
-  if (error) return <div className="widget-error">Error: {error}</div>;
+export default function StockTicker({ dims }: Props) {
+  const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed?source=stock&limit=20', 30000);
+  const size = dims?.size ?? 'medium';
+
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading stocks...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
   if (!data || data.items.length === 0) {
+    return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
+  }
+
+  if (size === 'compact') {
     return (
-      <div className="widget-empty">
-        <p>No stock data available</p>
+      <div className="flex flex-col h-full overflow-hidden">
+        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Stocks</h2>
+        {data.items.slice(0, 3).map((item) => <StockItemRow key={item.id} item={item} compact />)}
       </div>
     );
   }
 
+  const maxItems = size === 'small' ? 5 : size === 'medium' ? 8 : 20;
+  const useCompact = size === 'small';
+
   return (
-    <div className="stock-ticker">
-      <div className="widget-header">
-        <h2>Stocks</h2>
-        <span className="widget-count">{data.items.length}</span>
+    <div className="flex flex-col overflow-hidden h-full">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Stocks</h2>
+        <Badge variant="secondary" className="text-[0.6rem] px-1.5 py-0">{data.items.length}</Badge>
       </div>
-      <div className="stock-list">
-        {data.items.map((item) => (
-          <StockItem key={item.id} item={item} />
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1">
+        {data.items.slice(0, maxItems).map((item) => (
+          <StockItemRow key={item.id} item={item} compact={useCompact} />
         ))}
       </div>
     </div>

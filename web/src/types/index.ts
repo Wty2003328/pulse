@@ -41,3 +41,25 @@ export interface CollectorsResponse {
   collectors: CollectorInfo[];
   recent_runs: CollectorRun[];
 }
+
+export interface ProviderSetting {
+  id: string;
+  display_name: string;
+  api_key_set: boolean;
+  api_key_preview: string | null;
+  model: string | null;
+  endpoint: string | null;
+  enabled: boolean;
+  is_active: boolean;
+  extra_config: Record<string, string>;
+}
+
+export interface ProviderTestResult {
+  success: boolean;
+  message: string;
+  model_used?: string;
+}
+
+export interface ProvidersResponse {
+  providers: ProviderSetting[];
+}

@@ -9,10 +9,12 @@ pub fn load_config(path: &Path) -> Result<AppConfig> {
     let raw = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read config file: {}", path.display()))?;
 
-    // Substitute ${ENV_VAR} patterns with actual environment variables
-    let expanded = shellexpand::env(&raw)
-        .with_context(|| "Failed to expand environment variables in config")?
-        .to_string();
+    // Substitute ${ENV_VAR} patterns with actual environment variables.
+    // Missing vars resolve to empty string so commented-out examples don't fail.
+    let expanded = shellexpand::env_with_context_no_errors(&raw, |var| {
+        std::env::var(var).ok()
+    })
+    .to_string();
 
     let config: AppConfig = serde_yaml::from_str(&expanded)
         .with_context(|| "Failed to parse config YAML")?;

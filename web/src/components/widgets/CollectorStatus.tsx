@@ -1,60 +1,100 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import type { WidgetDimensions } from '../../lib/widget-size';
 import type { CollectorsResponse } from '../../types';
 
-export default function CollectorStatus() {
-  const { data, loading, error, refetch } = useWidgetData<CollectorsResponse>(
-    '/api/collectors',
-    30000
-  );
+interface Props { dims?: WidgetDimensions }
+
+export default function CollectorStatus({ dims }: Props) {
+  const { data, loading, error, refetch } = useWidgetData<CollectorsResponse>('/api/collectors', 30000);
+  const size = dims?.size ?? 'medium';
 
   const triggerCollector = async (id: string) => {
     try {
       await fetch(`/api/collectors/${id}/run`, { method: 'POST' });
-      // Refetch status after triggering
       setTimeout(refetch, 2000);
     } catch (err) {
       console.error('Failed to trigger collector:', err);
     }
   };
 
-  if (loading) return <div className="widget-loading">Loading collectors...</div>;
-  if (error) return <div className="widget-error">Error: {error}</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading collectors...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
   if (!data) return null;
 
-  return (
-    <div className="collector-status">
-      <div className="widget-header">
-        <h2>Collectors</h2>
+  // Compact: just colored dots with names
+  if (size === 'compact') {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Collectors</h2>
+        <div className="flex flex-col gap-1">
+          {data.collectors.map((c) => (
+            <div key={c.id} className="flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${c.enabled ? 'bg-success' : 'bg-muted-foreground'}`} />
+              <span className="text-[0.65rem] text-foreground truncate">{c.name}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="collector-list">
+    );
+  }
+
+  // Small: names + status badges
+  if (size === 'small') {
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Collectors</h2>
+        <div className="flex-1 overflow-y-auto flex flex-col gap-1.5">
+          {data.collectors.map((c) => {
+            const lastRun = data.recent_runs.find((r) => r.collector_id === c.id);
+            return (
+              <div key={c.id} className="flex items-center justify-between">
+                <span className="text-xs font-medium truncate">{c.name}</span>
+                <Badge variant={c.enabled ? (lastRun?.status === 'error' ? 'destructive' : 'success') : 'secondary'} className="text-[0.55rem] px-1 py-0">
+                  {c.enabled ? (lastRun?.status ?? 'idle') : 'off'}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Medium/Large: full view with run details and trigger buttons
+  return (
+    <div className="flex flex-col overflow-hidden h-full">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Collectors</h2>
+      </div>
+      <div className="flex-1 overflow-y-auto flex flex-col gap-2">
         {data.collectors.map((collector) => {
-          const lastRun = data.recent_runs.find(
-            (r) => r.collector_id === collector.id
-          );
+          const lastRun = data.recent_runs.find((r) => r.collector_id === collector.id);
 
           return (
-            <div key={collector.id} className="collector-item">
-              <div className="collector-info">
-                <span className="collector-name">{collector.name}</span>
-                <span className={`collector-badge ${collector.enabled ? 'enabled' : 'disabled'}`}>
+            <div key={collector.id} className="p-2 bg-muted rounded-lg">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium">{collector.name}</span>
+                <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.55rem] px-1 py-0">
                   {collector.enabled ? 'ON' : 'OFF'}
-                </span>
+                </Badge>
               </div>
               {lastRun && (
-                <div className="collector-run">
-                  <span className={`run-status status-${lastRun.status}`}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Badge
+                    variant={lastRun.status === 'success' ? 'success' : lastRun.status === 'running' ? 'warning' : 'destructive'}
+                    className="text-[0.55rem] px-1 py-0"
+                  >
                     {lastRun.status}
-                  </span>
-                  <span className="run-items">{lastRun.items_count} items</span>
+                  </Badge>
+                  <span className="text-[0.6rem] text-muted-foreground">{lastRun.items_count} items</span>
                 </div>
               )}
-              {collector.enabled && (
-                <button
-                  className="collector-trigger"
-                  onClick={() => triggerCollector(collector.id)}
-                >
+              {collector.enabled && size === 'large' && (
+                <Button variant="outline" size="sm" className="w-full h-6 text-[0.65rem]" onClick={() => triggerCollector(collector.id)}>
                   Run Now
-                </button>
+                </Button>
               )}
             </div>
           );

@@ -1,5 +1,6 @@
 import { useWidgetData } from '../../hooks/useWidgetData';
-import type { FeedResponse, FeedItem } from '../../types';
+import type { WidgetDimensions } from '../../lib/widget-size';
+import type { FeedResponse } from '../../types';
 
 interface WeatherMetadata {
   temp_f: number;
@@ -18,92 +19,100 @@ interface WeatherMetadata {
   }>;
 }
 
-function WeatherForecastItem({
-  day,
-}: {
-  day: NonNullable<WeatherMetadata['forecast']>[0];
-}) {
-  return (
-    <div className="forecast-item">
-      <div className="forecast-day">{day.day}</div>
-      <div className="forecast-temps">
-        <span className="forecast-high">{Math.round(day.high_f)}°</span>
-        <span className="forecast-low">{Math.round(day.low_f)}°</span>
-      </div>
-      <div className="forecast-desc">{day.description}</div>
-    </div>
-  );
-}
+interface Props { dims?: WidgetDimensions }
 
-function WeatherCurrent({ metadata }: { metadata: WeatherMetadata }) {
-  return (
-    <div className="weather-current">
-      <div className="temp-display">
-        <div className="temp-main">
-          <span className="temp-value">{Math.round(metadata.temp_f)}°</span>
-          <span className="temp-unit">F</span>
-        </div>
-        <div className="temp-info">
-          <div className="description">{metadata.description}</div>
-          {metadata.feels_like_f !== undefined && (
-            <div className="feels-like">
-              Feels like {Math.round(metadata.feels_like_f)}°
-            </div>
-          )}
-        </div>
-      </div>
+export default function Weather({ dims }: Props) {
+  const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed?source=weather&limit=10', 300000);
+  const size = dims?.size ?? 'medium';
 
-      <div className="weather-details">
-        {metadata.humidity !== undefined && (
-          <div className="detail">
-            <span className="detail-label">Humidity</span>
-            <span className="detail-value">{metadata.humidity}%</span>
-          </div>
-        )}
-        {metadata.wind_mph !== undefined && (
-          <div className="detail">
-            <span className="detail-label">Wind</span>
-            <span className="detail-value">{Math.round(metadata.wind_mph)} mph</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function Weather() {
-  const { data, loading, error } = useWidgetData<FeedResponse>(
-    '/api/feed?source=weather&limit=10',
-    300000
-  );
-
-  if (loading) return <div className="widget-loading">Loading weather...</div>;
-  if (error) return <div className="widget-error">Error: {error}</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading weather...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error: {error}</div>;
   if (!data || data.items.length === 0) {
+    return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No weather data</div>;
+  }
+
+  const metadata = data.items[0].metadata as unknown as WeatherMetadata;
+
+  // Compact: just temp + description
+  if (size === 'compact') {
     return (
-      <div className="widget-empty">
-        <p>No weather data available</p>
+      <div className="flex flex-col items-center justify-center h-full gap-1">
+        <span className="text-2xl font-bold text-foreground">{Math.round(metadata.temp_f)}°</span>
+        <span className="text-[0.65rem] text-muted-foreground text-center leading-tight">{metadata.description}</span>
       </div>
     );
   }
 
-  const currentItem = data.items[0];
-  const metadata = currentItem.metadata as unknown as WeatherMetadata;
+  // Small: temp + details
+  if (size === 'small') {
+    return (
+      <div className="flex flex-col h-full">
+        <h2 className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Weather</h2>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-3xl font-bold text-foreground">{Math.round(metadata.temp_f)}°<span className="text-xs text-muted-foreground ml-0.5">F</span></span>
+          <div>
+            <div className="text-xs text-muted-foreground">{metadata.description}</div>
+            {metadata.feels_like_f !== undefined && <div className="text-[0.65rem] text-muted-foreground">Feels {Math.round(metadata.feels_like_f)}°</div>}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {metadata.humidity !== undefined && (
+            <div><span className="text-muted-foreground">Humidity </span><span className="font-semibold">{metadata.humidity}%</span></div>
+          )}
+          {metadata.wind_mph !== undefined && (
+            <div><span className="text-muted-foreground">Wind </span><span className="font-semibold">{Math.round(metadata.wind_mph)} mph</span></div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Medium/Large: temp + details + forecast
+  const forecastCount = size === 'large' ? 5 : 3;
 
   return (
-    <div className="weather">
-      <div className="widget-header">
-        <h2>Weather</h2>
+    <div className="flex flex-col h-full overflow-hidden">
+      <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Weather</h2>
+
+      <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-baseline gap-0.5">
+          <span className="text-3xl font-bold text-foreground">{Math.round(metadata.temp_f)}°</span>
+          <span className="text-xs text-muted-foreground font-medium">F</span>
+        </div>
+        <div className="flex-1">
+          <div className="text-xs text-muted-foreground">{metadata.description}</div>
+          {metadata.feels_like_f !== undefined && <div className="text-[0.65rem] text-muted-foreground">Feels like {Math.round(metadata.feels_like_f)}°</div>}
+        </div>
       </div>
 
-      <WeatherCurrent metadata={metadata} />
+      <div className="grid grid-cols-2 gap-2 py-2 border-y border-border mb-2">
+        {metadata.humidity !== undefined && (
+          <div className="flex flex-col">
+            <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider">Humidity</span>
+            <span className="text-xs font-semibold text-foreground">{metadata.humidity}%</span>
+          </div>
+        )}
+        {metadata.wind_mph !== undefined && (
+          <div className="flex flex-col">
+            <span className="text-[0.6rem] text-muted-foreground uppercase tracking-wider">Wind</span>
+            <span className="text-xs font-semibold text-foreground">{Math.round(metadata.wind_mph)} mph</span>
+          </div>
+        )}
+      </div>
 
       {metadata.forecast && metadata.forecast.length > 0 && (
-        <div className="weather-forecast">
-          <div className="forecast-title">Forecast</div>
-          <div className="forecast-list">
-            {metadata.forecast.slice(0, 5).map((day, idx) => (
-              <WeatherForecastItem key={idx} day={day} />
+        <div className="flex-1 overflow-y-auto">
+          <div className="text-[0.6rem] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Forecast</div>
+          <div className="flex flex-col gap-1">
+            {metadata.forecast.slice(0, forecastCount).map((day, idx) => (
+              <div key={idx} className="grid grid-cols-[50px_1fr_1fr] items-center gap-1.5 p-1.5 bg-muted rounded text-[0.7rem]">
+                <span className="font-semibold text-muted-foreground">{day.day}</span>
+                <div className="flex gap-1.5 justify-center">
+                  <span className="text-destructive font-semibold">{Math.round(day.high_f)}°</span>
+                  <span className="text-muted-foreground">{Math.round(day.low_f)}°</span>
+                </div>
+                <span className="text-muted-foreground text-right truncate">{day.description}</span>
+              </div>
             ))}
           </div>
         </div>

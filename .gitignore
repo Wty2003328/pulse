@@ -1,6 +1,5 @@
 # Rust
-/target
-Cargo.lock
+/target/
 
 # Database
 /data/
@@ -8,6 +7,10 @@ Cargo.lock
 # Frontend
 web/node_modules/
 web/dist/
+web/tsconfig.tsbuildinfo
+
+# User config (copy from config/example.yaml)
+config/default.yaml
 
 # Environment
 .env

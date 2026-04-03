@@ -7,7 +7,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use models::{FeedItem, Item, RawItem, CollectorRun, Score, Summary, Tag};
+use models::{FeedItem, ProviderSetting, RawItem, CollectorRun, Score, Summary, Tag};
 
 #[derive(Clone)]
 pub struct Database {
@@ -122,6 +122,25 @@ impl Database {
                 items_count INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL DEFAULT 'running',
                 error TEXT
+            );
+            "#,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS provider_settings (
+                id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                api_key TEXT,
+                model TEXT,
+                endpoint TEXT,
+                enabled BOOLEAN NOT NULL DEFAULT 0,
+                is_active BOOLEAN NOT NULL DEFAULT 0,
+                extra_config TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             );
             "#,
         )
@@ -380,5 +399,150 @@ impl Database {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+
+    // --- Provider Settings ---
+
+    /// Get all provider settings.
+    pub async fn get_providers(&self) -> Result<Vec<ProviderSetting>> {
+        let rows = sqlx::query_as::<_, (
+            String, String, Option<String>, Option<String>, Option<String>,
+            bool, bool, String, String, String,
+        )>(
+            "SELECT id, display_name, api_key, model, endpoint, enabled, is_active, extra_config, created_at, updated_at
+             FROM provider_settings ORDER BY display_name"
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows.into_iter().map(|r| ProviderSetting {
+            id: r.0,
+            display_name: r.1,
+            api_key: r.2,
+            model: r.3,
+            endpoint: r.4,
+            enabled: r.5,
+            is_active: r.6,
+            extra_config: serde_json::from_str(&r.7).unwrap_or(serde_json::json!({})),
+            created_at: r.8,
+            updated_at: r.9,
+        }).collect())
+    }
+
+    /// Get a single provider setting.
+    pub async fn get_provider(&self, id: &str) -> Result<Option<ProviderSetting>> {
+        let row = sqlx::query_as::<_, (
+            String, String, Option<String>, Option<String>, Option<String>,
+            bool, bool, String, String, String,
+        )>(
+            "SELECT id, display_name, api_key, model, endpoint, enabled, is_active, extra_config, created_at, updated_at
+             FROM provider_settings WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|r| ProviderSetting {
+            id: r.0,
+            display_name: r.1,
+            api_key: r.2,
+            model: r.3,
+            endpoint: r.4,
+            enabled: r.5,
+            is_active: r.6,
+            extra_config: serde_json::from_str(&r.7).unwrap_or(serde_json::json!({})),
+            created_at: r.8,
+            updated_at: r.9,
+        }))
+    }
+
+    /// Upsert a provider setting (insert or update).
+    pub async fn upsert_provider(&self, setting: &ProviderSetting) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        let extra = serde_json::to_string(&setting.extra_config)?;
+
+        sqlx::query(
+            "INSERT INTO provider_settings (id, display_name, api_key, model, endpoint, enabled, is_active, extra_config, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+                display_name = excluded.display_name,
+                api_key = COALESCE(excluded.api_key, provider_settings.api_key),
+                model = excluded.model,
+                endpoint = excluded.endpoint,
+                enabled = excluded.enabled,
+                is_active = excluded.is_active,
+                extra_config = excluded.extra_config,
+                updated_at = excluded.updated_at"
+        )
+        .bind(&setting.id)
+        .bind(&setting.display_name)
+        .bind(&setting.api_key)
+        .bind(&setting.model)
+        .bind(&setting.endpoint)
+        .bind(setting.enabled)
+        .bind(setting.is_active)
+        .bind(&extra)
+        .bind(&now)
+        .bind(&now)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    /// Remove a provider's API key and disable it.
+    pub async fn delete_provider_key(&self, id: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        sqlx::query(
+            "UPDATE provider_settings SET api_key = NULL, enabled = 0, is_active = 0, updated_at = ? WHERE id = ?"
+        )
+        .bind(&now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    /// Set one provider as active (clears all others).
+    pub async fn set_active_provider(&self, id: &str) -> Result<()> {
+        let now = Utc::now().to_rfc3339();
+        // Clear all active flags
+        sqlx::query("UPDATE provider_settings SET is_active = 0, updated_at = ?")
+            .bind(&now)
+            .execute(&self.pool)
+            .await?;
+        // Set the chosen one as active
+        sqlx::query("UPDATE provider_settings SET is_active = 1, enabled = 1, updated_at = ? WHERE id = ?")
+            .bind(&now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Get the active provider setting (if any).
+    pub async fn get_active_provider(&self) -> Result<Option<ProviderSetting>> {
+        let row = sqlx::query_as::<_, (
+            String, String, Option<String>, Option<String>, Option<String>,
+            bool, bool, String, String, String,
+        )>(
+            "SELECT id, display_name, api_key, model, endpoint, enabled, is_active, extra_config, created_at, updated_at
+             FROM provider_settings WHERE is_active = 1 LIMIT 1"
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|r| ProviderSetting {
+            id: r.0,
+            display_name: r.1,
+            api_key: r.2,
+            model: r.3,
+            endpoint: r.4,
+            enabled: r.5,
+            is_active: r.6,
+            extra_config: serde_json::from_str(&r.7).unwrap_or(serde_json::json!({})),
+            created_at: r.8,
+            updated_at: r.9,
+        }))
     }
 }
