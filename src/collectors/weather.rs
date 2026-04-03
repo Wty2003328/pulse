@@ -108,19 +108,12 @@ impl Collector for WeatherCollector {
     }
 
     async fn collect(&self) -> Result<Vec<RawItem>> {
-        let location = self
-            .config
-            .location
-            .as_deref()
-            .unwrap_or("auto");
+        let location = self.config.location.as_deref().unwrap_or("auto");
 
         tracing::debug!("Fetching weather for: {}", location);
 
         // Use wttr.in JSON API (free, no key needed)
-        let url = format!(
-            "https://wttr.in/{}?format=j1",
-            urlencoded(location)
-        );
+        let url = format!("https://wttr.in/{}?format=j1", urlencoded(location));
 
         let response = self.client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -190,8 +183,11 @@ impl Collector for WeatherCollector {
                 url: Some(format!("https://wttr.in/{}", urlencoded(location))),
                 content: Some(format!(
                     "Feels like {}°F. Humidity: {}%. Wind: {} km/h {}. UV Index: {}.",
-                    current.feels_like_f, current.humidity,
-                    current.windspeed_kmph, current.wind_dir, current.uv_index
+                    current.feels_like_f,
+                    current.humidity,
+                    current.windspeed_kmph,
+                    current.wind_dir,
+                    current.uv_index
                 )),
                 metadata,
                 published_at: Some(now),

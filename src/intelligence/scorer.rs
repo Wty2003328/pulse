@@ -3,10 +3,10 @@ use chrono::Utc;
 use tracing::debug;
 use uuid::Uuid;
 
-use crate::config::types::Interest;
-use crate::storage::models::{RawItem, Score};
 use super::local_llm::LocalLLM;
 use super::remote_llm::RemoteLLM;
+use crate::config::types::Interest;
+use crate::storage::models::{RawItem, Score};
 
 /// Relevance scorer using local and remote LLMs
 pub struct Scorer {
@@ -31,11 +31,7 @@ impl Scorer {
     /// Score an item against interests using the two-stage pipeline
     /// Stage 1: Use local LLM for cheap filtering (0-10)
     /// Stage 2: Use remote LLM for deep analysis if local score passes threshold
-    pub async fn score_item(
-        &self,
-        item: &RawItem,
-        interests: &[Interest],
-    ) -> Result<Vec<Score>> {
+    pub async fn score_item(&self, item: &RawItem, interests: &[Interest]) -> Result<Vec<Score>> {
         if interests.is_empty() {
             return Ok(Vec::new());
         }
@@ -49,7 +45,10 @@ impl Scorer {
         let mut scores = Vec::new();
 
         for interest in interests {
-            debug!("Scoring item '{}' for interest '{}'", item.title, interest.name);
+            debug!(
+                "Scoring item '{}' for interest '{}'",
+                item.title, interest.name
+            );
 
             let mut score = 0.0;
             let mut model_used = "none".to_string();
@@ -57,7 +56,10 @@ impl Scorer {
 
             // Stage 1: Try local LLM for cheap filtering
             if let Some(local_llm) = &self.local_llm {
-                match local_llm.score_relevance(&item_text, &interest.description).await {
+                match local_llm
+                    .score_relevance(&item_text, &interest.description)
+                    .await
+                {
                     Ok(local_score) => {
                         score = local_score as f64;
                         model_used = "local_llm".to_string();
@@ -73,7 +75,10 @@ impl Scorer {
                                         reasoning = reason;
                                     }
                                     Err(e) => {
-                                        debug!("Remote LLM scoring failed, using local score: {}", e);
+                                        debug!(
+                                            "Remote LLM scoring failed, using local score: {}",
+                                            e
+                                        );
                                     }
                                 }
                             }
@@ -171,7 +176,10 @@ Respond ONLY with the JSON, no other text."#,
                 if let Ok(score) = response.trim().parse::<f64>() {
                     Ok((score.min(10.0), None))
                 } else {
-                    Err(anyhow::anyhow!("Could not parse remote LLM response: {}", response))
+                    Err(anyhow::anyhow!(
+                        "Could not parse remote LLM response: {}",
+                        response
+                    ))
                 }
             }
         }

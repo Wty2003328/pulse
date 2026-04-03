@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,8 @@ pub fn routes() -> Router<AppState> {
         .route("/providers/{id}/test", post(test_provider))
         .route("/providers/{id}/activate", post(activate_provider))
         .route("/collectors/{id}/interval", put(set_collector_interval))
+        .route("/feeds", get(list_user_feeds).post(add_user_feed))
+        .route("/feeds/{url}", delete(remove_user_feed))
 }
 
 // --- Response types ---
@@ -111,7 +113,12 @@ async fn get_provider(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    if let Some(p) = state.db.get_provider(&id).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))? {
+    if let Some(p) = state
+        .db
+        .get_provider(&id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    {
         Ok(Json(serde_json::json!(ProviderResponse::from(p))))
     } else if let Some(&(_, name)) = KNOWN_PROVIDERS.iter().find(|&&(pid, _)| pid == id) {
         Ok(Json(serde_json::json!(default_provider(&id, name))))
@@ -157,7 +164,9 @@ async fn save_provider(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(serde_json::json!({ "status": "saved", "provider": id })))
+    Ok(Json(
+        serde_json::json!({ "status": "saved", "provider": id }),
+    ))
 }
 
 async fn delete_provider(
@@ -170,7 +179,9 @@ async fn delete_provider(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(serde_json::json!({ "status": "deleted", "provider": id })))
+    Ok(Json(
+        serde_json::json!({ "status": "deleted", "provider": id }),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -248,7 +259,9 @@ async fn activate_provider(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(serde_json::json!({ "status": "activated", "provider": id })))
+    Ok(Json(
+        serde_json::json!({ "status": "activated", "provider": id }),
+    ))
 }
 
 // --- Collector interval ---
@@ -264,7 +277,10 @@ async fn set_collector_interval(
     Json(body): Json<SetIntervalRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     if body.interval_secs < 10 {
-        return Err((StatusCode::BAD_REQUEST, "Interval must be at least 10 seconds".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Interval must be at least 10 seconds".to_string(),
+        ));
     }
 
     state
@@ -273,5 +289,71 @@ async fn set_collector_interval(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(Json(serde_json::json!({ "status": "saved", "collector": id, "interval_secs": body.interval_secs })))
+    Ok(Json(
+        serde_json::json!({ "status": "saved", "collector": id, "interval_secs": body.interval_secs }),
+    ))
+}
+
+// --- User RSS feeds ---
+
+async fn list_user_feeds(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let feeds = state
+        .db
+        .get_user_feeds()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let feeds: Vec<serde_json::Value> = feeds
+        .into_iter()
+        .map(|(name, url)| serde_json::json!({ "name": name, "url": url }))
+        .collect();
+
+    Ok(Json(serde_json::json!({ "feeds": feeds })))
+}
+
+#[derive(Deserialize)]
+struct AddFeedRequest {
+    name: String,
+    url: String,
+}
+
+async fn add_user_feed(
+    State(state): State<AppState>,
+    Json(body): Json<AddFeedRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.name.is_empty() || body.url.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Name and URL are required".to_string(),
+        ));
+    }
+
+    state
+        .db
+        .add_user_feed(&body.name, &body.url)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(
+        serde_json::json!({ "status": "added", "name": body.name, "url": body.url }),
+    ))
+}
+
+async fn remove_user_feed(
+    State(state): State<AppState>,
+    Path(url): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let decoded = urlencoding::decode(&url)
+        .map(|s| s.into_owned())
+        .unwrap_or(url);
+
+    state
+        .db
+        .remove_user_feed(&decoded)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(serde_json::json!({ "status": "removed" })))
 }

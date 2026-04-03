@@ -1,18 +1,15 @@
 use anyhow::Result;
 use tracing::debug;
 
-use crate::storage::models::{RawItem, Tag};
 use super::remote_llm::RemoteLLM;
+use crate::storage::models::{RawItem, Tag};
 
 /// Auto-tagging engine using remote LLM
 pub struct Tagger;
 
 impl Tagger {
     /// Auto-generate tags for an item
-    pub async fn auto_tag(
-        remote_llm: &RemoteLLM,
-        item: &RawItem,
-    ) -> Result<Vec<Tag>> {
+    pub async fn auto_tag(remote_llm: &RemoteLLM, item: &RawItem) -> Result<Vec<Tag>> {
         let text = item.content.as_deref().unwrap_or(&item.title);
 
         let prompt = format!(

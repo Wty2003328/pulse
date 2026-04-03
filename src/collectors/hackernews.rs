@@ -99,9 +99,9 @@ impl Collector for HackerNewsCollector {
                     }
 
                     let title = hn_item.title.unwrap_or_else(|| "Untitled".to_string());
-                    let published_at = hn_item.time.map(|t| {
-                        DateTime::from_timestamp(t, 0).unwrap_or_else(|| Utc::now())
-                    });
+                    let published_at = hn_item
+                        .time
+                        .map(|t| DateTime::from_timestamp(t, 0).unwrap_or_else(|| Utc::now()));
 
                     let hn_url = format!("https://news.ycombinator.com/item?id={}", hn_item.id);
 
@@ -130,7 +130,11 @@ impl Collector for HackerNewsCollector {
             }
         }
 
-        tracing::info!("Fetched {} items from Hacker News (min_score: {})", items.len(), self.config.min_score);
+        tracing::info!(
+            "Fetched {} items from Hacker News (min_score: {})",
+            items.len(),
+            self.config.min_score
+        );
         Ok(items)
     }
 }

@@ -92,7 +92,10 @@ async fn main() -> Result<()> {
     tracing::info!("Registered {} collectors", collector_list.len());
 
     // Start the scheduler (runs collectors on their intervals)
-    let sched = Arc::new(scheduler::Scheduler::new(collector_list.clone(), db.clone()));
+    let sched = Arc::new(scheduler::Scheduler::new(
+        collector_list.clone(),
+        db.clone(),
+    ));
     let sched_handle = Arc::clone(&sched);
     let ws_notify = ws_broadcast.clone();
     tokio::spawn(async move {

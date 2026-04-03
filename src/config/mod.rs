@@ -11,13 +11,11 @@ pub fn load_config(path: &Path) -> Result<AppConfig> {
 
     // Substitute ${ENV_VAR} patterns with actual environment variables.
     // Missing vars resolve to empty string so commented-out examples don't fail.
-    let expanded = shellexpand::env_with_context_no_errors(&raw, |var| {
-        std::env::var(var).ok()
-    })
-    .to_string();
+    let expanded =
+        shellexpand::env_with_context_no_errors(&raw, |var| std::env::var(var).ok()).to_string();
 
-    let config: AppConfig = serde_yaml::from_str(&expanded)
-        .with_context(|| "Failed to parse config YAML")?;
+    let config: AppConfig =
+        serde_yaml::from_str(&expanded).with_context(|| "Failed to parse config YAML")?;
 
     tracing::info!("Configuration loaded from {}", path.display());
     Ok(config)

@@ -188,12 +188,8 @@ impl RemoteLLM {
         Ok(Self {
             provider_id: provider_id.to_string(),
             api_key: api_key.to_string(),
-            model: model
-                .unwrap_or(defaults.default_model)
-                .to_string(),
-            endpoint: endpoint
-                .unwrap_or(defaults.endpoint)
-                .to_string(),
+            model: model.unwrap_or(defaults.default_model).to_string(),
+            endpoint: endpoint.unwrap_or(defaults.endpoint).to_string(),
             client: std::sync::Arc::new(Client::new()),
         })
     }
@@ -369,7 +365,11 @@ impl RemoteLLM {
         model: Option<&str>,
     ) -> Result<String> {
         let llm = Self::from_params(provider_id, api_key, model, None)?;
-        debug!("Testing connection to {} (model: {})", llm.provider_name(), llm.model);
+        debug!(
+            "Testing connection to {} (model: {})",
+            llm.provider_name(),
+            llm.model
+        );
 
         let response = llm.generate("Say 'ok' and nothing else.").await?;
         Ok(format!(

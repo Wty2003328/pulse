@@ -7,7 +7,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use models::{FeedItem, ProviderSetting, RawItem, CollectorRun, Score, Summary, Tag};
+use models::{CollectorRun, FeedItem, ProviderSetting, RawItem, Score, Summary, Tag};
 
 #[derive(Clone)]
 pub struct Database {
@@ -19,8 +19,9 @@ impl Database {
     pub async fn new(db_path: &str) -> Result<Self> {
         // Ensure parent directory exists
         if let Some(parent) = Path::new(db_path).parent() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create database directory: {}", parent.display()))?;
+            std::fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create database directory: {}", parent.display())
+            })?;
         }
 
         let options = SqliteConnectOptions::from_str(db_path)
@@ -197,7 +198,12 @@ impl Database {
     }
 
     /// Get feed items with optional filtering, ordered by collected_at desc.
-    pub async fn get_feed(&self, limit: u32, offset: u32, source: Option<&str>) -> Result<Vec<FeedItem>> {
+    pub async fn get_feed(
+        &self,
+        limit: u32,
+        offset: u32,
+        source: Option<&str>,
+    ) -> Result<Vec<FeedItem>> {
         let base_query = if let Some(src) = source {
             format!(
                 "SELECT i.*, s.summary, sc.score FROM items i
@@ -217,12 +223,24 @@ impl Database {
             )
         };
 
-        let rows = sqlx::query_as::<_, (
-            String, String, String, String, Option<String>, Option<String>,
-            String, Option<String>, String, Option<String>, Option<f64>,
-        )>(&base_query)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query_as::<
+            _,
+            (
+                String,
+                String,
+                String,
+                String,
+                Option<String>,
+                Option<String>,
+                String,
+                Option<String>,
+                String,
+                Option<String>,
+                Option<f64>,
+            ),
+        >(&base_query)
+        .fetch_all(&self.pool)
+        .await?;
 
         let mut items = Vec::new();
         for row in rows {
@@ -238,7 +256,11 @@ impl Database {
                 metadata: serde_json::from_str(&row.6).unwrap_or_default(),
                 tags,
                 score: row.10,
-                published_at: row.7.and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))),
+                published_at: row.7.and_then(|s| {
+                    chrono::DateTime::parse_from_rfc3339(&s)
+                        .ok()
+                        .map(|d| d.with_timezone(&Utc))
+                }),
                 collected_at: chrono::DateTime::parse_from_rfc3339(&row.8)
                     .map(|d| d.with_timezone(&Utc))
                     .unwrap_or_else(|_| Utc::now()),
@@ -273,7 +295,12 @@ impl Database {
     }
 
     /// Record a collector run completion.
-    pub async fn finish_collector_run(&self, run_id: &str, items_count: u32, error: Option<&str>) -> Result<()> {
+    pub async fn finish_collector_run(
+        &self,
+        run_id: &str,
+        items_count: u32,
+        error: Option<&str>,
+    ) -> Result<()> {
         let now = Utc::now().to_rfc3339();
         let status = if error.is_some() { "error" } else { "success" };
         sqlx::query(
@@ -300,17 +327,24 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(rows.into_iter().map(|r| CollectorRun {
-            id: r.0,
-            collector_id: r.1,
-            started_at: chrono::DateTime::parse_from_rfc3339(&r.2)
-                .map(|d| d.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            finished_at: r.3.and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))),
-            items_count: r.4 as u32,
-            status: r.5,
-            error: r.6,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| CollectorRun {
+                id: r.0,
+                collector_id: r.1,
+                started_at: chrono::DateTime::parse_from_rfc3339(&r.2)
+                    .map(|d| d.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now()),
+                finished_at: r.3.and_then(|s| {
+                    chrono::DateTime::parse_from_rfc3339(&s)
+                        .ok()
+                        .map(|d| d.with_timezone(&Utc))
+                }),
+                items_count: r.4 as u32,
+                status: r.5,
+                error: r.6,
+            })
+            .collect())
     }
 
     /// Get top items sorted by AI score (for the digest endpoint).
@@ -323,12 +357,24 @@ impl Database {
             limit
         );
 
-        let rows = sqlx::query_as::<_, (
-            String, String, String, String, Option<String>, Option<String>,
-            String, Option<String>, String, Option<String>, Option<f64>,
-        )>(&query)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = sqlx::query_as::<
+            _,
+            (
+                String,
+                String,
+                String,
+                String,
+                Option<String>,
+                Option<String>,
+                String,
+                Option<String>,
+                String,
+                Option<String>,
+                Option<f64>,
+            ),
+        >(&query)
+        .fetch_all(&self.pool)
+        .await?;
 
         let mut items = Vec::new();
         for row in rows {
@@ -344,7 +390,11 @@ impl Database {
                 metadata: serde_json::from_str(&row.6).unwrap_or_default(),
                 tags,
                 score: row.10,
-                published_at: row.7.and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok().map(|d| d.with_timezone(&Utc))),
+                published_at: row.7.and_then(|s| {
+                    chrono::DateTime::parse_from_rfc3339(&s)
+                        .ok()
+                        .map(|d| d.with_timezone(&Utc))
+                }),
                 collected_at: chrono::DateTime::parse_from_rfc3339(&row.8)
                     .map(|d| d.with_timezone(&Utc))
                     .unwrap_or_else(|_| Utc::now()),
@@ -388,7 +438,7 @@ impl Database {
         let now = Utc::now().to_rfc3339();
         sqlx::query(
             "INSERT INTO summaries (id, item_id, summary, model_used, created_at)
-             VALUES (?, ?, ?, ?, ?)"
+             VALUES (?, ?, ?, ?, ?)",
         )
         .bind(&summary.id)
         .bind(&summary.item_id)
@@ -404,22 +454,20 @@ impl Database {
 
     /// Get the interval override for a collector (if set).
     pub async fn get_collector_interval(&self, id: &str) -> Result<Option<u64>> {
-        let row: Option<(i64,)> = sqlx::query_as(
-            "SELECT interval_secs FROM collector_settings WHERE id = ?"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row: Option<(i64,)> =
+            sqlx::query_as("SELECT interval_secs FROM collector_settings WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
         Ok(row.map(|r| r.0 as u64))
     }
 
     /// Get all collector interval overrides.
     pub async fn get_all_collector_intervals(&self) -> Result<Vec<(String, u64)>> {
-        let rows: Vec<(String, i64)> = sqlx::query_as(
-            "SELECT id, interval_secs FROM collector_settings"
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let rows: Vec<(String, i64)> =
+            sqlx::query_as("SELECT id, interval_secs FROM collector_settings")
+                .fetch_all(&self.pool)
+                .await?;
         Ok(rows.into_iter().map(|(id, s)| (id, s as u64)).collect())
     }
 
@@ -427,7 +475,7 @@ impl Database {
     pub async fn set_collector_interval(&self, id: &str, interval_secs: u64) -> Result<()> {
         sqlx::query(
             "INSERT INTO collector_settings (id, interval_secs) VALUES (?, ?)
-             ON CONFLICT(id) DO UPDATE SET interval_secs = excluded.interval_secs"
+             ON CONFLICT(id) DO UPDATE SET interval_secs = excluded.interval_secs",
         )
         .bind(id)
         .bind(interval_secs as i64)
@@ -436,15 +484,62 @@ impl Database {
         Ok(())
     }
 
-    /// Insert a tag for an item.
-    pub async fn insert_tag(&self, tag: &Tag) -> Result<()> {
+    // --- User RSS Feeds ---
+
+    /// Get all user-added RSS feeds.
+    pub async fn get_user_feeds(&self) -> Result<Vec<(String, String)>> {
+        // Ensure table exists
         sqlx::query(
-            "INSERT OR IGNORE INTO tags (item_id, tag) VALUES (?, ?)"
+            "CREATE TABLE IF NOT EXISTS user_feeds (
+                name TEXT NOT NULL,
+                url TEXT NOT NULL PRIMARY KEY
+            )",
         )
-        .bind(&tag.item_id)
-        .bind(&tag.tag)
         .execute(&self.pool)
         .await?;
+
+        let rows: Vec<(String, String)> =
+            sqlx::query_as("SELECT name, url FROM user_feeds ORDER BY name")
+                .fetch_all(&self.pool)
+                .await?;
+        Ok(rows)
+    }
+
+    /// Add a user RSS feed.
+    pub async fn add_user_feed(&self, name: &str, url: &str) -> Result<()> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS user_feeds (
+                name TEXT NOT NULL,
+                url TEXT NOT NULL PRIMARY KEY
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+
+        sqlx::query("INSERT OR REPLACE INTO user_feeds (name, url) VALUES (?, ?)")
+            .bind(name)
+            .bind(url)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Remove a user RSS feed by URL.
+    pub async fn remove_user_feed(&self, url: &str) -> Result<()> {
+        sqlx::query("DELETE FROM user_feeds WHERE url = ?")
+            .bind(url)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Insert a tag for an item.
+    pub async fn insert_tag(&self, tag: &Tag) -> Result<()> {
+        sqlx::query("INSERT OR IGNORE INTO tags (item_id, tag) VALUES (?, ?)")
+            .bind(&tag.item_id)
+            .bind(&tag.tag)
+            .execute(&self.pool)
+            .await?;
         Ok(())
     }
 
@@ -462,18 +557,21 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(rows.into_iter().map(|r| ProviderSetting {
-            id: r.0,
-            display_name: r.1,
-            api_key: r.2,
-            model: r.3,
-            endpoint: r.4,
-            enabled: r.5,
-            is_active: r.6,
-            extra_config: serde_json::from_str(&r.7).unwrap_or(serde_json::json!({})),
-            created_at: r.8,
-            updated_at: r.9,
-        }).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| ProviderSetting {
+                id: r.0,
+                display_name: r.1,
+                api_key: r.2,
+                model: r.3,
+                endpoint: r.4,
+                enabled: r.5,
+                is_active: r.6,
+                extra_config: serde_json::from_str(&r.7).unwrap_or(serde_json::json!({})),
+                created_at: r.8,
+                updated_at: r.9,
+            })
+            .collect())
     }
 
     /// Get a single provider setting.
@@ -559,11 +657,13 @@ impl Database {
             .execute(&self.pool)
             .await?;
         // Set the chosen one as active
-        sqlx::query("UPDATE provider_settings SET is_active = 1, enabled = 1, updated_at = ? WHERE id = ?")
-            .bind(&now)
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        sqlx::query(
+            "UPDATE provider_settings SET is_active = 1, enabled = 1, updated_at = ? WHERE id = ?",
+        )
+        .bind(&now)
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
         Ok(())
     }
 

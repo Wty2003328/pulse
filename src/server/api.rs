@@ -92,10 +92,12 @@ struct CollectorInfo {
     interval_secs: u64,
 }
 
-async fn get_collectors(
-    State(state): State<AppState>,
-) -> Json<serde_json::Value> {
-    let overrides = state.db.get_all_collector_intervals().await.unwrap_or_default();
+async fn get_collectors(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let overrides = state
+        .db
+        .get_all_collector_intervals()
+        .await
+        .unwrap_or_default();
 
     let collectors: Vec<CollectorInfo> = state
         .collectors

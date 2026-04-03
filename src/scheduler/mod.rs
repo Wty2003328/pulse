@@ -56,7 +56,11 @@ async fn run_collector(collector: &Arc<dyn Collector>, db: &Database) {
     let run_id = match db.start_collector_run(collector.id()).await {
         Ok(id) => id,
         Err(e) => {
-            tracing::error!("Failed to record collector run start for '{}': {}", collector.id(), e);
+            tracing::error!(
+                "Failed to record collector run start for '{}': {}",
+                collector.id(),
+                e
+            );
             return;
         }
     };

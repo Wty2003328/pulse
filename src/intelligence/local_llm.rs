@@ -36,7 +36,12 @@ impl LocalLLM {
 
     /// Check if the local LLM is available
     pub async fn health_check(&self) -> bool {
-        match self.client.get(&format!("{}/api/tags", self.config.endpoint)).send().await {
+        match self
+            .client
+            .get(&format!("{}/api/tags", self.config.endpoint))
+            .send()
+            .await
+        {
             Ok(resp) => resp.status().is_success(),
             Err(_) => false,
         }
@@ -50,7 +55,8 @@ impl LocalLLM {
             stream: false,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(&format!("{}/api/generate", self.config.endpoint))
             .json(&request)
             .send()
@@ -85,11 +91,7 @@ Respond with ONLY a single number from 0-10, nothing else."#,
         let response = self.generate(&prompt).await?;
 
         // Parse the response as a number
-        let score: u32 = response
-            .trim()
-            .parse()
-            .unwrap_or(0)
-            .min(10);
+        let score: u32 = response.trim().parse().unwrap_or(0).min(10);
 
         debug!("Local LLM relevance score for '{}': {}", interest, score);
         Ok(score)

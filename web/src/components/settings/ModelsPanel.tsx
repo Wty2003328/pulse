@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Zap, Trash2, CheckCircle2, XCircle, Loader2, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Zap, Trash2, CheckCircle2, XCircle, Loader2, Eye, EyeOff, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -83,7 +83,7 @@ export function ModelsPanel({ onToast }: Props) {
       {addingProvider && (
         <div className="mb-8">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Add Provider</h3>
-          <AddModelForm
+          <ProviderForm
             meta={PROVIDERS.find((p) => p.id === addingProvider)!}
             onSaved={() => { setAddingProvider(null); fetchProviders(); }}
             onCancel={() => setAddingProvider(null)}
@@ -119,12 +119,6 @@ export function ModelsPanel({ onToast }: Props) {
           </div>
         </div>
       )}
-
-      {configured.length === 0 && !addingProvider && available.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground text-sm">
-          All providers are configured.
-        </div>
-      )}
     </div>
   );
 }
@@ -132,37 +126,28 @@ export function ModelsPanel({ onToast }: Props) {
 /* ── Configured Model Row ── */
 
 function ConfiguredModelRow({
-  meta,
-  setting,
-  onSaved,
-  onToast,
+  meta, setting, onSaved, onToast,
 }: {
-  meta: ProviderMeta;
-  setting: ProviderSetting;
-  onSaved: () => void;
+  meta: ProviderMeta; setting: ProviderSetting; onSaved: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<ProviderTestResult | null>(null);
 
   const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
+    setTesting(true); setTestResult(null);
     try {
       const res = await fetch(`/api/settings/providers/${meta.id}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: setting.model }),
       });
       const result: ProviderTestResult = await res.json();
       setTestResult(result);
       onToast(result.success ? `${meta.name} connected` : `${meta.name}: ${result.message}`, result.success ? 'success' : 'error');
-    } catch {
-      setTestResult({ success: false, message: 'Network error' });
-    } finally {
-      setTesting(false);
-    }
+    } catch { setTestResult({ success: false, message: 'Network error' }); }
+    finally { setTesting(false); }
   };
 
   const handleActivate = async () => {
@@ -179,16 +164,25 @@ function ConfiguredModelRow({
     } catch { onToast('Failed to remove', 'error'); }
   };
 
+  if (editing) {
+    return (
+      <ProviderForm
+        meta={meta}
+        existing={setting}
+        onSaved={() => { setEditing(false); onSaved(); }}
+        onCancel={() => setEditing(false)}
+        onToast={onToast}
+      />
+    );
+  }
+
   return (
     <Card>
       <div
         className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/30 transition-colors rounded-lg"
         onClick={() => setExpanded(!expanded)}
       >
-        <div
-          className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white shrink-0"
-          style={{ backgroundColor: meta.color }}
-        >
+        <div className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: meta.color }}>
           {meta.name[0]}
         </div>
         <div className="flex-1 min-w-0">
@@ -202,11 +196,7 @@ function ConfiguredModelRow({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {testResult && (
-            testResult.success
-              ? <CheckCircle2 className="w-4 h-4 text-success" />
-              : <XCircle className="w-4 h-4 text-destructive" />
-          )}
+          {testResult && (testResult.success ? <CheckCircle2 className="w-4 h-4 text-success" /> : <XCircle className="w-4 h-4 text-destructive" />)}
           {setting.is_active ? (
             <Badge variant="success" className="gap-1 text-[0.6rem]"><Zap className="w-3 h-3" />Active</Badge>
           ) : (
@@ -217,10 +207,13 @@ function ConfiguredModelRow({
       </div>
 
       {expanded && (
-        <CardContent className="pt-0 pb-3 px-3 border-t border-border mt-0">
+        <CardContent className="pt-0 pb-3 px-3 border-t border-border">
           <div className="flex flex-wrap gap-2 pt-3">
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
+              <Pencil className="w-3.5 h-3.5 mr-1" /> Edit
+            </Button>
             <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>
-              {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Test Connection'}
+              {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Test'}
             </Button>
             {!setting.is_active && (
               <Button variant="outline" size="sm" className="text-primary border-primary/30 hover:bg-primary/10" onClick={handleActivate}>
@@ -232,9 +225,7 @@ function ConfiguredModelRow({
             </Button>
           </div>
           {testResult && !testResult.success && (
-            <div className="mt-2 text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-              {testResult.message}
-            </div>
+            <div className="mt-2 text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-md">{testResult.message}</div>
           )}
         </CardContent>
       )}
@@ -242,82 +233,61 @@ function ConfiguredModelRow({
   );
 }
 
-/* ── Add Model Form ── */
+/* ── Provider Form (add or edit) ── */
 
-function AddModelForm({
-  meta,
-  onSaved,
-  onCancel,
-  onToast,
+function ProviderForm({
+  meta, existing, onSaved, onCancel, onToast,
 }: {
-  meta: ProviderMeta;
-  onSaved: () => void;
-  onCancel: () => void;
+  meta: ProviderMeta; existing?: ProviderSetting; onSaved: () => void; onCancel: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState(meta.defaultModels[0]);
-  const [endpoint, setEndpoint] = useState('');
+  const [model, setModel] = useState(existing?.model || meta.defaultModels[0]);
+  const [endpoint, setEndpoint] = useState(existing?.endpoint || '');
   const [showKey, setShowKey] = useState(false);
-  const [showEndpoint, setShowEndpoint] = useState(false);
+  const [showEndpoint, setShowEndpoint] = useState(!!existing?.endpoint);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<ProviderTestResult | null>(null);
   const [saving, setSaving] = useState(false);
+  const isEdit = !!existing;
 
   const handleTest = async () => {
-    if (!apiKey) { onToast('Enter an API key first', 'error'); return; }
-    setTesting(true);
-    setTestResult(null);
+    if (!apiKey && !existing?.api_key_set) { onToast('Enter an API key first', 'error'); return; }
+    setTesting(true); setTestResult(null);
     try {
-      const body: Record<string, string> = { api_key: apiKey, model };
+      const body: Record<string, string> = { model };
+      if (apiKey) body.api_key = apiKey;
       const res = await fetch(`/api/settings/providers/${meta.id}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
       const result: ProviderTestResult = await res.json();
       setTestResult(result);
-      onToast(result.success ? `${meta.name} connected successfully` : `Test failed: ${result.message}`, result.success ? 'success' : 'error');
-    } catch {
-      setTestResult({ success: false, message: 'Network error' });
-    } finally {
-      setTesting(false);
-    }
+      onToast(result.success ? `${meta.name} connected` : `Test failed: ${result.message}`, result.success ? 'success' : 'error');
+    } catch { setTestResult({ success: false, message: 'Network error' }); }
+    finally { setTesting(false); }
   };
 
   const handleSave = async () => {
-    if (!apiKey) { onToast('Enter an API key', 'error'); return; }
+    if (!apiKey && !existing?.api_key_set) { onToast('Enter an API key', 'error'); return; }
     setSaving(true);
     try {
-      const body: Record<string, string> = { api_key: apiKey, model };
+      const body: Record<string, string> = { model };
+      if (apiKey) body.api_key = apiKey;
       if (endpoint) body.endpoint = endpoint;
-
       const res = await fetch(`/api/settings/providers/${meta.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
-      if (res.ok) {
-        onToast(`${meta.name} added`, 'success');
-        onSaved();
-      } else {
-        onToast(`Failed to save: ${await res.text()}`, 'error');
-      }
-    } catch {
-      onToast('Failed to save', 'error');
-    } finally {
-      setSaving(false);
-    }
+      if (res.ok) { onToast(`${meta.name} ${isEdit ? 'updated' : 'added'}`, 'success'); onSaved(); }
+      else { onToast(`Failed: ${await res.text()}`, 'error'); }
+    } catch { onToast('Failed to save', 'error'); }
+    finally { setSaving(false); }
   };
 
   return (
     <Card>
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white"
-            style={{ backgroundColor: meta.color }}
-          >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: meta.color }}>
             {meta.name[0]}
           </div>
           <div>
@@ -326,78 +296,55 @@ function AddModelForm({
           </div>
         </div>
 
-        {/* API Key */}
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">API Key</label>
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            API Key {isEdit && <span className="text-muted-foreground/60">(leave blank to keep current)</span>}
+          </label>
           <div className="relative">
             <Input
               type={showKey ? 'text' : 'password'}
-              placeholder={meta.authHint}
+              placeholder={existing?.api_key_preview || meta.authHint}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               className="pr-9"
-              autoFocus
+              autoFocus={!isEdit}
             />
-            <button
-              type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
               {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* Model */}
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Model</label>
           <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            value={model} onChange={(e) => setModel(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            {meta.defaultModels.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
+            {meta.defaultModels.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
-        {/* Endpoint override */}
-        <button
-          type="button"
-          onClick={() => setShowEndpoint(!showEndpoint)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          {showEndpoint ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          Custom endpoint
+        <button type="button" onClick={() => setShowEndpoint(!showEndpoint)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+          {showEndpoint ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />} Custom endpoint
         </button>
         {showEndpoint && (
-          <Input
-            type="text"
-            placeholder={meta.defaultEndpoint}
-            value={endpoint}
-            onChange={(e) => setEndpoint(e.target.value)}
-          />
+          <Input type="text" placeholder={meta.defaultEndpoint} value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
         )}
 
-        {/* Test result */}
         {testResult && (
-          <div className={cn(
-            'flex items-center gap-2 text-xs px-3 py-2 rounded-md',
-            testResult.success ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
-          )}>
+          <div className={cn('flex items-center gap-2 text-xs px-3 py-2 rounded-md', testResult.success ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive')}>
             {testResult.success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <XCircle className="w-3.5 h-3.5 shrink-0" />}
             <span className="break-all">{testResult.message}</span>
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2 pt-1">
-          <Button variant="outline" size="sm" onClick={handleTest} disabled={testing || !apiKey}>
+          <Button variant="outline" size="sm" onClick={handleTest} disabled={testing || (!apiKey && !existing?.api_key_set)}>
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Test Connection'}
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving || !apiKey}>
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add Provider'}
+          <Button size="sm" onClick={handleSave} disabled={saving || (!apiKey && !existing?.api_key_set)}>
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isEdit ? 'Save Changes' : 'Add Provider'}
           </Button>
           <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
         </div>
@@ -405,4 +352,3 @@ function AddModelForm({
     </Card>
   );
 }
-

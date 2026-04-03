@@ -6,9 +6,9 @@ pub mod tagger;
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use tracing::{debug, info, warn};
-use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
+use std::sync::Arc;
+use tracing::{debug, info, warn};
 
 use crate::config::types::{IntelligenceConfig, Interest};
 use crate::storage::{models::RawItem, Database};
@@ -50,7 +50,10 @@ impl IntelligencePipeline {
                         local_llm = Some(llm);
                     }
                     false => {
-                        warn!("Local LLM (Ollama) not available at {}", llm.config.endpoint);
+                        warn!(
+                            "Local LLM (Ollama) not available at {}",
+                            llm.config.endpoint
+                        );
                     }
                 }
             }
@@ -60,17 +63,15 @@ impl IntelligencePipeline {
         if let Some(remote_config) = config.remote.clone() {
             if remote_config.enabled {
                 match RemoteLLM::new(remote_config) {
-                    Ok(llm) => {
-                        match llm.health_check().await {
-                            true => {
-                                info!("Remote LLM ({}) connected and healthy", llm.provider_name());
-                                remote_llm = Some(llm);
-                            }
-                            false => {
-                                warn!("Remote LLM ({}) health check failed", llm.provider_name());
-                            }
+                    Ok(llm) => match llm.health_check().await {
+                        true => {
+                            info!("Remote LLM ({}) connected and healthy", llm.provider_name());
+                            remote_llm = Some(llm);
                         }
-                    }
+                        false => {
+                            warn!("Remote LLM ({}) health check failed", llm.provider_name());
+                        }
+                    },
                     Err(e) => {
                         warn!("Failed to initialize remote LLM: {}", e);
                     }
@@ -79,9 +80,17 @@ impl IntelligencePipeline {
         }
 
         // Create scorer
-        let local_threshold = config.local.as_ref().map(|c| c.relevance_threshold).unwrap_or(4);
+        let local_threshold = config
+            .local
+            .as_ref()
+            .map(|c| c.relevance_threshold)
+            .unwrap_or(4);
         let scorer = if local_llm.is_some() || remote_llm.is_some() {
-            Some(Scorer::new(local_llm.clone(), remote_llm.clone(), local_threshold))
+            Some(Scorer::new(
+                local_llm.clone(),
+                remote_llm.clone(),
+                local_threshold,
+            ))
         } else {
             None
         };
@@ -115,16 +124,32 @@ impl IntelligencePipeline {
             return Ok(());
         }
 
-        info!("Processing {} items through intelligence pipeline", items.len());
+        info!(
+            "Processing {} items through intelligence pipeline",
+            items.len()
+        );
 
         // Check budget
-        let max_calls = self.config.remote.as_ref().map(|c| c.max_daily_calls).unwrap_or(100);
+        let max_calls = self
+            .config
+            .remote
+            .as_ref()
+            .map(|c| c.max_daily_calls)
+            .unwrap_or(100);
         if !self.check_budget(max_calls) {
-            warn!("Daily call budget ({}) exceeded, skipping processing", max_calls);
+            warn!(
+                "Daily call budget ({}) exceeded, skipping processing",
+                max_calls
+            );
             return Ok(());
         }
 
-        let batch_size = self.config.remote.as_ref().map(|c| c.batch_size).unwrap_or(10) as usize;
+        let batch_size = self
+            .config
+            .remote
+            .as_ref()
+            .map(|c| c.batch_size)
+            .unwrap_or(10) as usize;
 
         for chunk in items.chunks(batch_size) {
             for raw_item in chunk {
@@ -148,7 +173,10 @@ impl IntelligencePipeline {
         // Insert the raw item first
         let item_id = self.db.insert_item(raw_item).await?;
 
-        let scorer = self.scorer.as_ref().ok_or_else(|| anyhow!("No scorer available"))?;
+        let scorer = self
+            .scorer
+            .as_ref()
+            .ok_or_else(|| anyhow!("No scorer available"))?;
 
         // Stage 1: Score against interests
         let mut scores = scorer.score_item(raw_item, &self.interests).await?;
@@ -200,7 +228,8 @@ impl IntelligencePipeline {
         // Reset counter if it's a new day
         if *last_date != today {
             *last_date = today;
-            self.call_count.store(0, std::sync::atomic::Ordering::SeqCst);
+            self.call_count
+                .store(0, std::sync::atomic::Ordering::SeqCst);
         }
 
         let current_count = self.call_count.load(std::sync::atomic::Ordering::SeqCst);

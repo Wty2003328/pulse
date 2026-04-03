@@ -1,9 +1,9 @@
-pub mod rss;
+pub mod github;
 pub mod hackernews;
 pub mod reddit;
+pub mod rss;
 pub mod stocks;
 pub mod weather;
-pub mod github;
 
 use anyhow::Result;
 use async_trait::async_trait;

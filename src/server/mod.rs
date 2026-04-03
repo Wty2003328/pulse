@@ -33,9 +33,7 @@ pub fn build_router(state: AppState) -> Router {
 }
 
 /// Serve the embedded frontend files (SPA fallback).
-async fn serve_frontend(
-    uri: axum::http::Uri,
-) -> impl axum::response::IntoResponse {
+async fn serve_frontend(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
     let path = uri.path().trim_start_matches('/');
 
     if let Some(content) = FrontendAssets::get(path) {
@@ -47,10 +45,7 @@ async fn serve_frontend(
             .into_response()
     } else if let Some(content) = FrontendAssets::get("index.html") {
         (
-            [(
-                axum::http::header::CONTENT_TYPE,
-                "text/html".to_string(),
-            )],
+            [(axum::http::header::CONTENT_TYPE, "text/html".to_string())],
             content.data.to_vec(),
         )
             .into_response()

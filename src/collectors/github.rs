@@ -53,10 +53,7 @@ impl GitHubCollector {
     async fn fetch_repo_releases(&self, repo: &str) -> Result<Vec<RawItem>> {
         tracing::debug!("Fetching releases for {}", repo);
 
-        let url = format!(
-            "https://api.github.com/repos/{}/releases?per_page=3",
-            repo
-        );
+        let url = format!("https://api.github.com/repos/{}/releases?per_page=3", repo);
 
         let response = self.client.get(&url).send().await?;
         if !response.status().is_success() {
@@ -152,7 +149,11 @@ impl GitHubCollector {
                     }
                 }
                 Ok(response) => {
-                    tracing::warn!("GitHub trending API returned {} for {}", response.status(), lang);
+                    tracing::warn!(
+                        "GitHub trending API returned {} for {}",
+                        response.status(),
+                        lang
+                    );
                 }
                 Err(e) => {
                     tracing::warn!("Failed to fetch GitHub trending for {}: {}", lang, e);
