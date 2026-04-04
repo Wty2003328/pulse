@@ -12,7 +12,7 @@ import SystemMonitor from './widgets/SystemMonitor';
 import Calendar from './widgets/Calendar';
 import ZeroClawAgent from './widgets/ZeroClawAgent';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { getWidgetSize } from '../lib/widget-size';
+import { getWidgetSize, getOrientation } from '../lib/widget-size';
 import type { FeedResponse } from '../types';
 
 const COLS = 12;
@@ -93,9 +93,9 @@ export default function Dashboard() {
   };
 
   const widgetDims = useMemo(() => {
-    const map: Record<string, { w: number; h: number; size: ReturnType<typeof getWidgetSize>; rowHeightPx: number }> = {};
+    const map: Record<string, { w: number; h: number; size: ReturnType<typeof getWidgetSize>; orientation: ReturnType<typeof getOrientation>; rowHeightPx: number }> = {};
     for (const item of layout) {
-      map[item.i] = { w: item.w, h: item.h, size: getWidgetSize(item.w, item.h), rowHeightPx: rowHeight };
+      map[item.i] = { w: item.w, h: item.h, size: getWidgetSize(item.w, item.h), orientation: getOrientation(item.w, item.h), rowHeightPx: rowHeight };
     }
     return map;
   }, [layout, rowHeight]);

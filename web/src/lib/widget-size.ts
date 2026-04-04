@@ -1,16 +1,23 @@
 /**
- * Widget size classification for a 12-column square grid.
- * - small:  1×1 — minimal icon/number
- * - medium: anything up to 2×2 — compact detail
- * - large:  anything bigger than 2×2 — full detail
+ * Widget size and orientation for adaptive layouts.
+ * - small:  1×1
+ * - medium: up to 2×2, with orientation hint (wide/tall/square)
+ * - large:  3×3+ — full detail, auto-expand
  */
 
 export type WidgetSize = 'small' | 'medium' | 'large';
+export type Orientation = 'wide' | 'tall' | 'square';
 
 export function getWidgetSize(w: number, h: number): WidgetSize {
   if (w <= 1 && h <= 1) return 'small';
   if (w <= 2 && h <= 2) return 'medium';
   return 'large';
+}
+
+export function getOrientation(w: number, h: number): Orientation {
+  if (w > h) return 'wide';
+  if (h > w) return 'tall';
+  return 'square';
 }
 
 /** Estimate how many list items fit based on pixel height. */
@@ -24,5 +31,6 @@ export interface WidgetDimensions {
   w: number;
   h: number;
   size: WidgetSize;
+  orientation: Orientation;
   rowHeightPx: number;
 }

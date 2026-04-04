@@ -27,8 +27,8 @@ function DirIcon({ dir }: { dir: string }) {
   return <Minus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />;
 }
 
-function StockRow({ item, expandable }: { item: FeedItem; expandable?: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+function StockRow({ item, expandable, defaultExpanded }: { item: FeedItem; expandable?: boolean; defaultExpanded?: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
   const m = item.metadata as unknown as StockMeta;
   const pos = m.direction === 'up'; const neg = m.direction === 'down';
   const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
@@ -93,10 +93,12 @@ export default function StockTicker({ dims }: Props) {
     );
   }
 
-  const max = itemsForHeight(h, rh, 34);
+  // Large: auto-expand all rows
+  const autoExpand = size === 'large';
+  const max = itemsForHeight(h, rh, autoExpand ? 90 : 34);
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-1">{data.items.slice(0, max).map((i) => <StockRow key={i.id} item={i} expandable />)}</div>
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1">{data.items.slice(0, max).map((i) => <StockRow key={i.id} item={i} expandable defaultExpanded={autoExpand} />)}</div>
     </div>
   );
 }
