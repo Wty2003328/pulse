@@ -20,20 +20,20 @@ const GAP = 8;
 const HEADER_HEIGHT = 49; // header px height
 
 const defaultLayout: Layout[] = [
-  { i: 'feed',       x: 0,  y: 0, w: 5, h: 6, minW: 2, minH: 2 },
-  { i: 'digest',     x: 5,  y: 0, w: 4, h: 4, minW: 2, minH: 2 },
-  { i: 'weather',    x: 9,  y: 0, w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'stocks',     x: 5,  y: 4, w: 4, h: 3, minW: 2, minH: 2 },
-  { i: 'system',     x: 9,  y: 4, w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'calendar',   x: 0,  y: 6, w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'zeroclaw',   x: 3,  y: 6, w: 5, h: 4, minW: 2, minH: 2 },
-  { i: 'trending',   x: 8,  y: 7, w: 4, h: 3, minW: 2, minH: 2 },
-  { i: 'collectors', x: 0,  y: 10,w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'feed',       x: 0,  y: 0, w: 5, h: 6, minW: 1, minH: 1 },
+  { i: 'digest',     x: 5,  y: 0, w: 4, h: 4, minW: 1, minH: 1 },
+  { i: 'weather',    x: 9,  y: 0, w: 3, h: 4, minW: 1, minH: 1 },
+  { i: 'stocks',     x: 5,  y: 4, w: 4, h: 3, minW: 1, minH: 1 },
+  { i: 'system',     x: 9,  y: 4, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'calendar',   x: 0,  y: 6, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'zeroclaw',   x: 3,  y: 6, w: 4, h: 3, minW: 1, minH: 1 },
+  { i: 'trending',   x: 7,  y: 6, w: 3, h: 3, minW: 1, minH: 1 },
+  { i: 'collectors', x: 10, y: 6, w: 2, h: 3, minW: 1, minH: 1 },
 ];
 
 function loadLayout(): Layout[] {
   try {
-    const stored = localStorage.getItem('dashboard-layout-v6');
+    const stored = localStorage.getItem('dashboard-layout-v7');
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return defaultLayout;
@@ -107,7 +107,7 @@ export default function Dashboard() {
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard-layout-v6', JSON.stringify(newLayout));
+    localStorage.setItem('dashboard-layout-v7', JSON.stringify(newLayout));
   };
 
   const widgetDims = useMemo(() => {

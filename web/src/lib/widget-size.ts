@@ -1,18 +1,16 @@
 /**
  * Widget size classification for a 12-column square grid.
- * - small:  2×2 only — compact summary
- * - medium: anything from 2×3 up to 5×5 — standard detail
- * - large:  5+ in both dimensions — full detail with graphs
+ * - small:  1×1 — minimal icon/number
+ * - medium: anything up to 2×2 — compact detail
+ * - large:  anything bigger than 2×2 — full detail
  */
 
 export type WidgetSize = 'small' | 'medium' | 'large';
 
 export function getWidgetSize(w: number, h: number): WidgetSize {
-  const minDim = Math.min(w, h);
-  const maxDim = Math.max(w, h);
-  if (minDim <= 2 && maxDim <= 2) return 'small';
-  if (minDim >= 5) return 'large';
-  return 'medium';
+  if (w <= 1 && h <= 1) return 'small';
+  if (w <= 2 && h <= 2) return 'medium';
+  return 'large';
 }
 
 /** Estimate how many list items fit based on pixel height. */
