@@ -52,6 +52,11 @@
   }
 }
 
+/* Widget container — supports both width and height container queries */
+.widget-container {
+  container-type: size;
+}
+
 /* react-grid-layout base styles */
 .react-grid-layout {
   position: relative;

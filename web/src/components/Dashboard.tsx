@@ -45,7 +45,7 @@ function WidgetShell({ children, title }: { children: React.ReactNode; title: st
         <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground/40" />
         <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
       </div>
-      <div className="@container p-2 flex flex-col flex-1 overflow-hidden">
+      <div className="widget-container p-2 flex flex-col flex-1 overflow-hidden">
         {children}
       </div>
     </div>
