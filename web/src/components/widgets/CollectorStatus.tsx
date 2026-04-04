@@ -10,8 +10,14 @@ export default function CollectorStatus({ dims }: Props) {
   const { data, loading, error, refetch } = useWidgetData<CollectorsResponse>('/api/collectors', 30000);
 
   const triggerCollector = async (id: string) => {
-    try { await fetch(`/api/collectors/${id}/run`, { method: 'POST' }); setTimeout(refetch, 2000); }
-    catch (err) { console.error('Failed to trigger collector:', err); }
+    try {
+      await fetch(`/api/collectors/${id}/run`, { method: 'POST' });
+      setTimeout(() => {
+        refetch();
+        // Notify all widgets to refresh their data
+        window.dispatchEvent(new CustomEvent('pulse-data-refresh'));
+      }, 2000);
+    } catch (err) { console.error('Failed to trigger collector:', err); }
   };
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground cq-text-sm">Loading...</div>;

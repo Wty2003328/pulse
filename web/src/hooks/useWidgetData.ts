@@ -24,7 +24,15 @@ export function useWidgetData<T>(url: string, refreshInterval: number = 60000) {
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, refreshInterval);
-    return () => clearInterval(interval);
+
+    // Listen for manual refresh events (e.g. after "Run Now" in collectors)
+    const handleRefresh = () => fetchData();
+    window.addEventListener('pulse-data-refresh', handleRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('pulse-data-refresh', handleRefresh);
+    };
   }, [fetchData, refreshInterval]);
 
   return { data, loading, error, refetch: fetchData };

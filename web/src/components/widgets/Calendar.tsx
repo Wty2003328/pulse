@@ -6,7 +6,6 @@ import type { WidgetDimensions } from '../../lib/widget-size';
 
 interface CalendarEvent { id: string; title: string; start: string; end: string; all_day: boolean; location: string }
 interface CalendarResponse { events: CalendarEvent[] }
-interface CalendarStatus { connected: boolean }
 
 function formatTime(iso: string) { try { return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); } catch { return iso; } }
 function formatDate(iso: string) { try { const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);const diff=(d.getTime()-t.getTime())/864e5;if(diff>=0&&diff<1)return'Today';if(diff>=1&&diff<2)return'Tomorrow';return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});} catch{return'';} }
@@ -15,27 +14,68 @@ function isNow(s: string, e: string) { const now=Date.now();return new Date(s).g
 interface Props { dims?: WidgetDimensions }
 
 export default function Calendar({ dims }: Props) {
-  const [status, setStatus] = useState<CalendarStatus | null>(null);
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [hasCredentials, setHasCredentials] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => { fetch('/api/calendar/status').then(r=>r.json()).then(setStatus).catch(()=>setStatus({connected:false})); }, []);
+  useEffect(() => {
+    // Check calendar status
+    fetch('/api/calendar/status').then(r => r.json())
+      .then(s => setConnected(s.connected))
+      .catch(() => setConnected(false));
+    // Check if credentials are configured
+    fetch('/api/settings/app').then(r => r.json())
+      .then(d => setHasCredentials(!!(d.google_client_id && d.google_client_secret)))
+      .catch(() => {});
+  }, []);
 
   const handleConnect = async () => {
     setConnecting(true);
+    setError('');
     try {
-      const res = await fetch('/api/calendar/auth-url'); const { url } = await res.json();
+      const res = await fetch('/api/calendar/auth-url');
+      if (!res.ok) {
+        const errText = await res.text();
+        setError(errText);
+        setConnecting(false);
+        return;
+      }
+      const { url } = await res.json();
       const popup = window.open(url, 'google-auth', 'width=500,height=600');
-      const poll = setInterval(async () => { const s = await fetch('/api/calendar/status').then(r=>r.json()); if(s.connected){clearInterval(poll);setStatus(s);setConnecting(false);if(popup)popup.close();} }, 2000);
+      const poll = setInterval(async () => {
+        const s = await fetch('/api/calendar/status').then(r => r.json()).catch(() => ({ connected: false }));
+        if (s.connected) { clearInterval(poll); setConnected(true); setConnecting(false); if (popup) popup.close(); }
+      }, 2000);
       setTimeout(() => { clearInterval(poll); setConnecting(false); }, 120000);
-    } catch { setConnecting(false); }
+    } catch { setConnecting(false); setError('Connection failed'); }
   };
 
-  if (!status || !status.connected) {
+  // Loading
+  if (connected === null) return <div className="flex-1 flex items-center justify-center text-muted-foreground cq-text-sm">Loading...</div>;
+
+  // Not connected
+  if (!connected) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center cursor-pointer" onClick={handleConnect}>
-        <CalIcon className="w-8 h-8 text-muted-foreground/50" />
-        <p className="hidden @[130px]:block text-xs text-muted-foreground">Connect Calendar</p>
-        <div className="hidden @[200px]:block"><Button size="sm" disabled={connecting}>{connecting ? 'Connecting...' : 'Connect'}</Button></div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center p-2">
+        <CalIcon className="w-8 h-8 text-muted-foreground/40" />
+        {!hasCredentials ? (
+          <>
+            <p className="hidden @[130px]:block cq-text-xs text-muted-foreground">Set up Google Calendar credentials in Settings &gt; Data Sources first</p>
+          </>
+        ) : (
+          <>
+            <p className="hidden @[130px]:block cq-text-xs text-muted-foreground">Connect your Google Calendar</p>
+            <div className="hidden @[150px]:block">
+              <Button size="sm" onClick={handleConnect} disabled={connecting}>
+                {connecting ? 'Connecting...' : 'Connect'}
+              </Button>
+            </div>
+            {/* Tiny size: click anywhere */}
+            <div className="@[150px]:hidden w-full h-full absolute inset-0 cursor-pointer" onClick={handleConnect} />
+          </>
+        )}
+        {error && <p className="cq-text-xs text-destructive">{error}</p>}
       </div>
     );
   }
@@ -46,9 +86,9 @@ export default function Calendar({ dims }: Props) {
 function CalendarEvents() {
   const { data, loading, error } = useWidgetData<CalendarResponse>('/api/calendar/events', 300000);
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">Loading...</div>;
-  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-sm">Error</div>;
-  if (!data || data.events.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">No events</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground cq-text-sm">Loading events...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive cq-text-sm">Error loading calendar</div>;
+  if (!data || data.events.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground cq-text-sm">No upcoming events</div>;
 
   const grouped = new Map<string, CalendarEvent[]>();
   for (const ev of data.events) { const day = formatDate(ev.start||ev.end); if (!grouped.has(day)) grouped.set(day,[]); grouped.get(day)!.push(ev); }
