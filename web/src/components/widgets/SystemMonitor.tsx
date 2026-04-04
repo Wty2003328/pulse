@@ -28,73 +28,90 @@ export default function SystemMonitor({ dims }: Props) {
   if (error) return <div className="flex-1 flex items-center justify-center text-destructive cq-text-sm">Error</div>;
   if (!data) return null;
 
+  {/* All content rendered. CSS container queries at realistic breakpoints:
+      1x1 = ~137x123  2x1 = ~297x123  1x2 = ~137x283
+      2x2 = ~297x283  3x2 = ~458x283  3x3 = ~458x444 */}
+
   return (
-    <div className="flex flex-col h-full overflow-hidden cq-gap">
-      {/* Tier 1 (always): CPU % — the single most important metric */}
-      {/* At tiny sizes, show all 3 as just icon + number horizontally */}
-      <div className="@min-h-[90px]:hidden flex items-center justify-around h-full">
-        {[
-          { icon: Cpu, pct: data.cpu_percent, color: 'text-primary' },
-          { icon: Server, pct: data.memory_percent, color: 'text-cyan-400' },
-          { icon: HardDrive, pct: data.disk_percent, color: 'text-yellow-400' },
-        ].map(({ icon: I, pct, color }) => (
-          <div key={color} className="flex flex-col items-center">
-            <I className={`w-3 h-3 ${color}`} />
-            <span className="cq-text-lg font-bold">{pct.toFixed(0)}%</span>
-          </div>
-        ))}
+    <div className="flex flex-col h-full overflow-hidden gap-1">
+      {/* === SHORT LAYOUT (h < 140px — fits 1×1 and 2×1) === */}
+      <div className="@min-h-[140px]:hidden flex items-center h-full gap-1">
+        {/* 1×1: compact vertical stack */}
+        <div className="flex @[200px]:hidden flex-col items-center justify-center gap-0.5 w-full">
+          {[{ I: Cpu, p: data.cpu_percent, c: 'text-primary', l: 'CPU' },
+            { I: Server, p: data.memory_percent, c: 'text-cyan-400', l: 'RAM' },
+            { I: HardDrive, p: data.disk_percent, c: 'text-yellow-400', l: 'DSK' }
+          ].map(({ I, p, c, l }) => (
+            <div key={l} className="flex items-center gap-1 w-full">
+              <I className={`w-3 h-3 ${c} shrink-0`}/>
+              <Bar pct={p}/>
+              <span className="cq-text-sm font-bold w-7 text-right shrink-0">{p.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
+        {/* 2×1: horizontal with more detail */}
+        <div className="hidden @[200px]:flex items-center justify-around w-full gap-2">
+          {[{ I: Cpu, p: data.cpu_percent, c: 'text-primary', l: 'CPU', d: `${data.cpu_count}c` },
+            { I: Server, p: data.memory_percent, c: 'text-cyan-400', l: 'RAM', d: fmtB(data.memory_used_bytes) },
+            { I: HardDrive, p: data.disk_percent, c: 'text-yellow-400', l: 'Disk', d: fmtB(data.disk_used_bytes) }
+          ].map(({ I, p, c, l, d }) => (
+            <div key={l} className="flex flex-col items-center">
+              <I className={`w-3.5 h-3.5 ${c}`}/>
+              <span className="cq-text-lg font-bold">{p.toFixed(0)}%</span>
+              <span className="cq-text-xs text-muted-foreground">{l}</span>
+              <span className="cq-text-xs text-muted-foreground">{d}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Tier 2 (>=90px height): vertical bars for CPU, RAM, Disk */}
-      <div className="hidden @min-h-[90px]:flex flex-col justify-center cq-gap flex-1 min-h-0">
-        {/* Hostname row — tier 3 (>=120px height) */}
-        <div className="hidden @min-h-[120px]:flex items-center justify-between shrink-0">
+      {/* === TALL LAYOUT (h >= 140px — fits 1×2, 2×2, 3×2, 3×3) === */}
+      <div className="hidden @min-h-[140px]:flex flex-col h-full gap-1 overflow-hidden">
+        {/* Hostname + uptime */}
+        <div className="flex items-center justify-between shrink-0">
           <span className="cq-text-sm font-medium truncate">{data.hostname}</span>
           <span className="cq-text-xs text-muted-foreground flex items-center gap-0.5"><Clock className="w-3 h-3"/>{fmtUp(data.uptime_secs)}</span>
         </div>
 
-        {/* Core 3 bars */}
-        {[
-          { icon: Cpu, label: 'CPU', pct: data.cpu_percent, detail: `${data.cpu_count} cores`, color: 'text-primary' },
-          { icon: Server, label: 'RAM', pct: data.memory_percent, detail: `${fmtB(data.memory_used_bytes)}/${fmtB(data.memory_total_bytes)}`, color: 'text-cyan-400' },
-          { icon: HardDrive, label: 'Disk', pct: data.disk_percent, detail: `${fmtB(data.disk_used_bytes)}/${fmtB(data.disk_total_bytes)}`, color: 'text-yellow-400' },
-        ].map(({ icon: I, label, pct, detail, color }) => (
-          <div key={label}>
+        {/* 3 core bars + details */}
+        {[{ I: Cpu, l: 'CPU', p: data.cpu_percent, d: `${data.cpu_count} cores`, c: 'text-primary' },
+          { I: Server, l: 'RAM', p: data.memory_percent, d: `${fmtB(data.memory_used_bytes)} / ${fmtB(data.memory_total_bytes)}`, c: 'text-cyan-400' },
+          { I: HardDrive, l: 'Disk', p: data.disk_percent, d: `${fmtB(data.disk_used_bytes)} / ${fmtB(data.disk_total_bytes)}`, c: 'text-yellow-400' }
+        ].map(({ I, l, p, d, c }) => (
+          <div key={l}>
             <div className="flex items-center gap-1">
-              <I className={`w-3 h-3 ${color} shrink-0`} />
-              <span className="hidden @[130px]:inline cq-text-xs text-muted-foreground w-7 shrink-0">{label}</span>
-              <Bar pct={pct} />
-              <span className="cq-text-sm font-bold w-7 text-right shrink-0">{pct.toFixed(0)}%</span>
+              <I className={`w-3 h-3 ${c} shrink-0`}/>
+              <span className="cq-text-xs text-muted-foreground w-7 shrink-0">{l}</span>
+              <Bar pct={p}/>
+              <span className="cq-text-sm font-bold w-7 text-right shrink-0">{p.toFixed(0)}%</span>
             </div>
-            {/* Tier 4 (>=180px width): byte details */}
-            <div className="hidden @[180px]:block cq-text-xs text-muted-foreground text-right">{detail}</div>
+            <div className="hidden @[200px]:block cq-text-xs text-muted-foreground text-right">{d}</div>
           </div>
         ))}
 
-        {/* Tier 5 (>=220px width): Swap */}
+        {/* Swap — at 2×2+ */}
         {data.swap_total_bytes > 0 && (
-          <div className="hidden @[220px]:block">
+          <div className="hidden @min-h-[230px]:block">
             <div className="flex items-center gap-1">
               <Layers className="w-3 h-3 text-purple-400 shrink-0"/>
               <span className="cq-text-xs text-muted-foreground w-7 shrink-0">Swap</span>
-              <Bar pct={data.swap_percent} />
+              <Bar pct={data.swap_percent}/>
               <span className="cq-text-sm font-bold w-7 text-right shrink-0">{data.swap_percent.toFixed(0)}%</span>
             </div>
-            <div className="cq-text-xs text-muted-foreground text-right">{fmtB(data.swap_used_bytes)}/{fmtB(data.swap_total_bytes)}</div>
           </div>
         )}
-      </div>
 
-      {/* Tier 6 (>=280px width AND >=180px height): extra stats */}
-      <div className="hidden @[280px]:@min-h-[180px]:grid grid-cols-2 gap-x-3 gap-y-0.5 py-1 border-t border-border/40 shrink-0">
-        <div className="flex items-center gap-1"><Activity className="w-3 h-3 text-green-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">Procs</span><span className="cq-text-sm font-semibold ml-auto">{data.process_count}</span></div>
-        <div className="flex items-center gap-1"><Cpu className="w-3 h-3 text-primary shrink-0"/><span className="cq-text-xs text-muted-foreground">Cores</span><span className="cq-text-sm font-semibold ml-auto">{data.cpu_count}</span></div>
-        <div className="flex items-center gap-1"><Wifi className="w-3 h-3 text-blue-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">RX</span><span className="cq-text-sm font-semibold ml-auto">{fmtB(data.network_rx_bytes)}</span></div>
-        <div className="flex items-center gap-1"><Wifi className="w-3 h-3 text-orange-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">TX</span><span className="cq-text-sm font-semibold ml-auto">{fmtB(data.network_tx_bytes)}</span></div>
-      </div>
+        {/* Extra stats — at 2×2+ (h>=230 and w>=200) */}
+        <div className="hidden @[200px]:@min-h-[230px]:grid grid-cols-2 gap-x-2 gap-y-0.5 py-1 border-t border-border/40 shrink-0 mt-auto">
+          <div className="flex items-center gap-1"><Activity className="w-3 h-3 text-green-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">Procs</span><span className="cq-text-sm font-semibold ml-auto">{data.process_count}</span></div>
+          <div className="flex items-center gap-1"><Wifi className="w-3 h-3 text-blue-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">RX</span><span className="cq-text-sm font-semibold ml-auto">{fmtB(data.network_rx_bytes)}</span></div>
+          <div className="flex items-center gap-1"><Cpu className="w-3 h-3 text-primary shrink-0"/><span className="cq-text-xs text-muted-foreground">Cores</span><span className="cq-text-sm font-semibold ml-auto">{data.cpu_count}</span></div>
+          <div className="flex items-center gap-1"><Wifi className="w-3 h-3 text-orange-400 shrink-0"/><span className="cq-text-xs text-muted-foreground">TX</span><span className="cq-text-sm font-semibold ml-auto">{fmtB(data.network_tx_bytes)}</span></div>
+        </div>
 
-      {/* Tier 7 (>=350px width): OS info */}
-      <div className="hidden @[350px]:block cq-text-xs text-muted-foreground truncate border-t border-border/40 pt-0.5 shrink-0">{data.os}{data.kernel ? ` (${data.kernel})` : ''}</div>
+        {/* OS — at 2×3+ or 3×2+ (large enough) */}
+        <div className="hidden @[250px]:@min-h-[300px]:block cq-text-xs text-muted-foreground truncate border-t border-border/40 pt-0.5 shrink-0">{data.os}</div>
+      </div>
     </div>
   );
 }
