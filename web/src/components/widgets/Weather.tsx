@@ -73,23 +73,43 @@ export default function Weather({ dims }: Props) {
         </div>
       )}
 
-      {/* Forecast — fills remaining space */}
+      {/* Forecast — always visible, fills remaining space */}
       {fc.length > 0 && (
-        <div className="hidden cqh-140 flex-col flex-1 overflow-y-auto min-h-0">
-          <div className="cq-text-xs font-semibold text-muted-foreground mb-0.5">Forecast</div>
-          <div className="flex flex-col flex-1 gap-1">
-            {fc.map((day, i) => {
-              const rain = day.rain_chance ? parseInt(day.rain_chance) : 0;
-              return (
-                <div key={i} className="flex items-center gap-2 p-2 bg-muted rounded-lg cq-text-sm flex-1">
-                  <span className="font-semibold text-muted-foreground w-10 shrink-0">{fmtDay(day.date)}</span>
-                  <span className="hidden @[220px]:block flex-1 text-foreground/60 truncate">{day.description}</span>
-                  {rain > 0 && <span className="hidden @[140px]:inline text-blue-400 shrink-0"><CloudRain className="w-3 h-3 inline mr-0.5"/>{rain}%</span>}
-                  <span className="text-destructive/80 font-bold shrink-0">{day.high_f}°</span>
-                  <span className="text-muted-foreground shrink-0">{day.low_f}°</span>
-                </div>
-              );
-            })}
+        <div className="flex flex-col flex-1 overflow-y-auto min-h-0">
+          {/* Compact forecast at tiny sizes */}
+          <div className="@[200px]:hidden flex flex-col flex-1 justify-evenly">
+            {fc.map((day, i) => (
+              <div key={i} className="flex items-center justify-between cq-text-xs">
+                <span className="font-semibold text-muted-foreground">{fmtDay(day.date)}</span>
+                <span><span className="text-destructive/80 font-bold">{day.high_f}°</span> <span className="text-muted-foreground">{day.low_f}°</span></span>
+              </div>
+            ))}
+          </div>
+          {/* Full forecast at wider */}
+          <div className="hidden @[200px]:block flex-1 overflow-y-auto">
+            <div className="cq-text-xs font-semibold text-muted-foreground mb-1">Forecast</div>
+            <div className="flex flex-col gap-1">
+              {fc.map((day, i) => {
+                const rain = day.rain_chance ? parseInt(day.rain_chance) : 0;
+                return (
+                  <div key={i} className="p-2 bg-muted rounded-lg">
+                    <div className="flex items-center justify-between cq-text-sm">
+                      <span className="font-semibold">{fmtDay(day.date)}</span>
+                      <div className="flex items-center gap-2">
+                        {rain > 0 && <span className="text-blue-400"><CloudRain className="w-3 h-3 inline mr-0.5"/>{rain}%</span>}
+                        <span className="text-destructive/80 font-bold">{day.high_f}°</span>
+                        <span className="text-muted-foreground">{day.low_f}°</span>
+                      </div>
+                    </div>
+                    {day.description && <div className="cq-text-xs text-muted-foreground mt-0.5">{day.description}</div>}
+                    {day.sunrise && <div className="hidden cqh-200 items-center gap-2 mt-1 cq-text-xs text-muted-foreground">
+                      <Sunrise className="w-3 h-3 text-orange-300 inline"/>{day.sunrise}
+                      <Sunset className="w-3 h-3 text-red-300 inline ml-1"/>{day.sunset}
+                    </div>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

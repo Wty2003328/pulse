@@ -29,7 +29,7 @@ export default function SystemMonitor({ dims }: Props) {
   if (!data) return null;
 
   const metrics = [
-    { icon: Cpu, label: 'CPU', pct: data.cpu_percent, detail: `${fmtB(data.memory_used_bytes)}`, color: 'text-primary' },
+    { icon: Cpu, label: 'CPU', pct: data.cpu_percent, detail: `${data.cpu_count} cores`, color: 'text-primary' },
     { icon: Server, label: 'RAM', pct: data.memory_percent, detail: `${fmtB(data.memory_used_bytes)}/${fmtB(data.memory_total_bytes)}`, color: 'text-cyan-400' },
     { icon: HardDrive, label: 'Disk', pct: data.disk_percent, detail: `${fmtB(data.disk_used_bytes)}/${fmtB(data.disk_total_bytes)}`, color: 'text-yellow-400' },
   ];
