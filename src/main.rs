@@ -89,6 +89,14 @@ async fn main() -> Result<()> {
         )));
     }
 
+    // Video subscriptions (loaded from database)
+    let video_channels = db.get_video_channels().await.unwrap_or_default();
+    if !video_channels.is_empty() {
+        let video_collector =
+            collectors::videos::VideoCollector::new().with_channels(video_channels);
+        collector_list.push(Arc::new(video_collector));
+    }
+
     tracing::info!("Registered {} collectors", collector_list.len());
 
     // Start the scheduler (runs collectors on their intervals)

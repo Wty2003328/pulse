@@ -3,6 +3,7 @@ pub mod hackernews;
 pub mod reddit;
 pub mod rss;
 pub mod stocks;
+pub mod videos;
 pub mod weather;
 
 use anyhow::Result;

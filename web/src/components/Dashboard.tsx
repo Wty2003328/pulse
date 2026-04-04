@@ -11,6 +11,7 @@ import Trending from './widgets/Trending';
 import SystemMonitor from './widgets/SystemMonitor';
 import Calendar from './widgets/Calendar';
 import ZeroClawAgent from './widgets/ZeroClawAgent';
+import Videos from './widgets/Videos';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { getWidgetSize, getOrientation } from '../lib/widget-size';
 import type { FeedResponse } from '../types';
@@ -28,11 +29,12 @@ const defaultLayout: Layout[] = [
   { i: 'zeroclaw',   x: 3,  y: 6, w: 4, h: 3, minW: 1, minH: 1 },
   { i: 'trending',   x: 7,  y: 6, w: 3, h: 3, minW: 1, minH: 1 },
   { i: 'collectors', x: 10, y: 6, w: 2, h: 3, minW: 1, minH: 1 },
+  { i: 'videos',     x: 0,  y: 9, w: 5, h: 4, minW: 1, minH: 1 },
 ];
 
 function loadLayout(): Layout[] {
   try {
-    const stored = localStorage.getItem('dashboard-layout-v7');
+    const stored = localStorage.getItem('dashboard-layout-v8');
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return defaultLayout;
@@ -89,7 +91,7 @@ export default function Dashboard() {
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard-layout-v7', JSON.stringify(newLayout));
+    localStorage.setItem('dashboard-layout-v8', JSON.stringify(newLayout));
   };
 
   const widgetDims = useMemo(() => {
@@ -143,6 +145,7 @@ export default function Dashboard() {
             <div key="system"><WidgetShell title="System"><SystemMonitor dims={widgetDims['system']} /></WidgetShell></div>
             <div key="calendar"><WidgetShell title="Calendar"><Calendar dims={widgetDims['calendar']} /></WidgetShell></div>
             <div key="zeroclaw"><WidgetShell title="ZeroClaw"><ZeroClawAgent dims={widgetDims['zeroclaw']} /></WidgetShell></div>
+            <div key="videos"><WidgetShell title="Videos"><Videos key={`v-${refetchSignal}`} dims={widgetDims['videos']} /></WidgetShell></div>
           </GridLayout>
         )}
       </main>

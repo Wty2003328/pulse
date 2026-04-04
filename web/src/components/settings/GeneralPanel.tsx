@@ -7,7 +7,7 @@ interface Props {
 
 export function GeneralPanel({ onToast }: Props) {
   const handleResetLayout = () => {
-    localStorage.removeItem('dashboard-layout-v7');
+    localStorage.removeItem('dashboard-layout-v8');
     onToast('Dashboard layout reset. Reload the page to apply.', 'success');
   };
 

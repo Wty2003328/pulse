@@ -4,7 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Loader2, Pencil, Check, X, Plus, Trash2, Rss, MapPin, TrendingUp, Calendar, Bot, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Pencil, Check, X, Plus, Trash2, Rss, MapPin, TrendingUp, Calendar, Bot, ExternalLink, CheckCircle2, XCircle, Play } from 'lucide-react';
 import type { CollectorsResponse } from '../../types';
 
 interface UserFeed { name: string; url: string }
@@ -20,6 +20,8 @@ export function DataSourcesPanel({ onToast }: Props) {
   const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [calendarConnecting, setCalendarConnecting] = useState(false);
+  const [videoChannels, setVideoChannels] = useState<{ platform: string; channel_id: string; name: string }[]>([]);
+  const [showAddVideo, setShowAddVideo] = useState(false);
   const [zeroclawUrl, setZeroclawUrl] = useState('');
   const [zeroclawToken, setZeroclawToken] = useState('');
   const [zeroclawStatus, setZeroclawStatus] = useState<{ configured: boolean; reachable: boolean } | null>(null);
@@ -50,7 +52,11 @@ export function DataSourcesPanel({ onToast }: Props) {
     setSettingsLoaded(true);
   };
 
-  useEffect(() => { fetchFeeds(); fetchAppSettings(); }, []);
+  const fetchVideoChannels = async () => {
+    try { const r = await fetch('/api/settings/videos'); if (r.ok) { const d = await r.json(); setVideoChannels(d.channels || []); } } catch {}
+  };
+
+  useEffect(() => { fetchFeeds(); fetchAppSettings(); fetchVideoChannels(); }, []);
 
   const triggerCollector = async (id: string, name: string) => {
     try { await fetch(`/api/collectors/${id}/run`, { method: 'POST' }); onToast(`${name} triggered`, 'success'); setTimeout(refetch, 2000); }
@@ -126,6 +132,51 @@ export function DataSourcesPanel({ onToast }: Props) {
                 <span key={s} className="text-[0.65rem] font-bold text-foreground bg-muted px-1.5 py-0.5 rounded">{s}</span>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Video Subscriptions */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Play className="w-3.5 h-3.5" />Video Subscriptions</h3>
+        {!showAddVideo && <Button variant="outline" size="sm" onClick={() => setShowAddVideo(true)}><Plus className="w-3.5 h-3.5 mr-1"/>Add Channel</Button>}
+      </div>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground mb-3">
+            Follow YouTube channels and Bilibili UP主. Videos fetched via RSS — no API key or login needed.
+          </p>
+
+          {showAddVideo && <AddVideoForm onAdd={async (platform, channelId, name) => {
+            try {
+              const res = await fetch('/api/settings/videos', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ platform, channel_id: channelId, name }) });
+              if (res.ok) { onToast(`Added ${name}`, 'success'); fetchVideoChannels(); setShowAddVideo(false); }
+              else { onToast(`Failed: ${await res.text()}`, 'error'); }
+            } catch { onToast('Failed', 'error'); }
+          }} onCancel={() => setShowAddVideo(false)} />}
+
+          {videoChannels.length > 0 ? (
+            <div className="space-y-2 mt-2">
+              {videoChannels.map((ch) => (
+                <div key={`${ch.platform}-${ch.channel_id}`} className="flex items-center gap-3 p-2 bg-muted rounded-lg">
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${ch.platform === 'youtube' ? 'text-red-400 bg-red-400/10' : 'text-pink-400 bg-pink-400/10'}`}>
+                    {ch.platform === 'youtube' ? 'YT' : 'B站'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{ch.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{ch.channel_id}</div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                    onClick={async () => {
+                      await fetch(`/api/settings/videos/${ch.platform}/${ch.channel_id}`, { method: 'DELETE' });
+                      onToast(`Removed ${ch.name}`, 'success'); fetchVideoChannels();
+                    }}><Trash2 className="w-3.5 h-3.5"/></Button>
+                </div>
+              ))}
+            </div>
+          ) : !showAddVideo && (
+            <div className="text-center text-muted-foreground text-sm py-2">No channels added yet.</div>
           )}
         </CardContent>
       </Card>
@@ -337,6 +388,49 @@ function CollectorRow({ collector, lastRun, onTrigger, onSaveInterval }: {
       </div>
       {collector.enabled && <Button variant="outline" size="sm" onClick={onTrigger}>Run Now</Button>}
     </CardContent></Card>
+  );
+}
+
+function AddVideoForm({ onAdd, onCancel }: { onAdd: (platform: string, channelId: string, name: string) => void; onCancel: () => void }) {
+  const [platform, setPlatform] = useState('youtube');
+  const [channelId, setChannelId] = useState('');
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const handleSubmit = async () => { if (!channelId.trim() || !name.trim()) return; setSaving(true); await onAdd(platform, channelId.trim(), name.trim()); setSaving(false); };
+  return (
+    <div className="space-y-3 p-3 border border-border rounded-lg mb-3">
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">Platform</label>
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)}
+          className="h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground">
+          <option value="youtube">YouTube</option>
+          <option value="bilibili">Bilibili</option>
+        </select>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+          {platform === 'youtube' ? 'Channel ID' : 'UP主 UID'}
+        </label>
+        <Input value={channelId} onChange={(e) => setChannelId(e.target.value)}
+          placeholder={platform === 'youtube' ? 'UCxxxxxx (from channel URL)' : 'e.g. 12345678'} />
+        <p className="text-xs text-muted-foreground mt-1">
+          {platform === 'youtube'
+            ? 'Find it in the channel URL: youtube.com/channel/UCxxxxxx'
+            : 'Find it in the UP主 space URL: space.bilibili.com/12345678'}
+        </p>
+      </div>
+      <div>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">Display Name</label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Linus Tech Tips"
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} />
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleSubmit} disabled={saving || !channelId.trim() || !name.trim()}>
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : 'Add Channel'}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+      </div>
+    </div>
   );
 }
 

@@ -577,6 +577,59 @@ impl Database {
         Ok(())
     }
 
+    // --- Video Subscriptions ---
+
+    pub async fn get_video_channels(&self) -> Result<Vec<(String, String, String)>> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS video_channels (
+                platform TEXT NOT NULL, channel_id TEXT NOT NULL, display_name TEXT NOT NULL,
+                PRIMARY KEY (platform, channel_id)
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+        let rows: Vec<(String, String, String)> = sqlx::query_as(
+            "SELECT platform, channel_id, display_name FROM video_channels ORDER BY display_name",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    pub async fn add_video_channel(
+        &self,
+        platform: &str,
+        channel_id: &str,
+        display_name: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS video_channels (
+                platform TEXT NOT NULL, channel_id TEXT NOT NULL, display_name TEXT NOT NULL,
+                PRIMARY KEY (platform, channel_id)
+            )",
+        )
+        .execute(&self.pool)
+        .await?;
+        sqlx::query(
+            "INSERT OR REPLACE INTO video_channels (platform, channel_id, display_name) VALUES (?, ?, ?)",
+        )
+        .bind(platform)
+        .bind(channel_id)
+        .bind(display_name)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn remove_video_channel(&self, platform: &str, channel_id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM video_channels WHERE platform = ? AND channel_id = ?")
+            .bind(platform)
+            .bind(channel_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// Insert a tag for an item.
     pub async fn insert_tag(&self, tag: &Tag) -> Result<()> {
         sqlx::query("INSERT OR IGNORE INTO tags (item_id, tag) VALUES (?, ?)")

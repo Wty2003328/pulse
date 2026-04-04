@@ -35,6 +35,11 @@ pub fn routes() -> Router<AppState> {
         .route("/feeds", get(list_user_feeds).post(add_user_feed))
         .route("/feeds/{url}", delete(remove_user_feed))
         .route("/app", get(get_app_settings).put(save_app_settings))
+        .route("/videos", get(list_video_channels).post(add_video_channel))
+        .route(
+            "/videos/{platform}/{channel_id}",
+            delete(remove_video_channel),
+        )
 }
 
 // --- Response types ---
@@ -392,4 +397,64 @@ async fn save_app_settings(
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }
     Ok(Json(serde_json::json!({ "status": "saved" })))
+}
+
+// --- Video subscriptions ---
+
+async fn list_video_channels(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let channels = state
+        .db
+        .get_video_channels()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let list: Vec<serde_json::Value> = channels
+        .into_iter()
+        .map(|(p, c, n)| serde_json::json!({"platform": p, "channel_id": c, "name": n}))
+        .collect();
+    Ok(Json(serde_json::json!({ "channels": list })))
+}
+
+#[derive(Deserialize)]
+struct AddVideoChannelRequest {
+    platform: String,
+    channel_id: String,
+    name: String,
+}
+
+async fn add_video_channel(
+    State(state): State<AppState>,
+    Json(body): Json<AddVideoChannelRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    if body.channel_id.is_empty() || body.name.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Channel ID and name are required".to_string(),
+        ));
+    }
+    if body.platform != "youtube" && body.platform != "bilibili" {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Platform must be 'youtube' or 'bilibili'".to_string(),
+        ));
+    }
+    state
+        .db
+        .add_video_channel(&body.platform, &body.channel_id, &body.name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(serde_json::json!({ "status": "added" })))
+}
+
+async fn remove_video_channel(
+    State(state): State<AppState>,
+    Path((platform, channel_id)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    state
+        .db
+        .remove_video_channel(&platform, &channel_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(Json(serde_json::json!({ "status": "removed" })))
 }
