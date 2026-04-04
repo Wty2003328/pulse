@@ -67,7 +67,7 @@ export default function StockTicker({ dims }: Props) {
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-0.5">
+      <div className="flex-1 overflow-y-auto flex flex-col justify-evenly">
         {data.items.map((i) => <StockRow key={i.id} item={i} />)}
       </div>
     </div>

@@ -29,7 +29,7 @@ export default function Weather({ dims }: Props) {
   const todayHourly = fc[0]?.hourly || [];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden gap-1">
+    <div className="flex flex-col h-full overflow-hidden gap-1.5">
       {/* Temp + description — always */}
       <div className="flex items-center justify-between shrink-0">
         <span className="cq-text-4xl font-bold leading-none">{Math.round(m.temp_f)}°</span>
@@ -81,10 +81,11 @@ export default function Weather({ dims }: Props) {
       {fc.length > 0 && (
         <div className="hidden cqh-140 flex-col flex-1 overflow-y-auto min-h-0">
           <div className="cq-text-xs font-semibold text-muted-foreground mb-0.5">Forecast</div>
+          <div className="flex flex-col flex-1 gap-1">
           {fc.map((day, i) => {
             const rain = day.rain_chance ? parseInt(day.rain_chance) : 0;
             return (
-              <div key={i} className="flex items-center gap-1 py-0.5 cq-text-xs border-t border-border/20 first:border-0">
+              <div key={i} className="flex items-center gap-2 p-2 bg-muted rounded-lg cq-text-sm flex-1">
                 <span className="font-semibold text-muted-foreground w-8 shrink-0">{fmtDay(day.date)}</span>
                 <span className="hidden @[220px]:block flex-1 text-foreground/60 truncate">{day.description}</span>
                 {rain > 0 && <span className="hidden @[140px]:flex items-center gap-0.5 text-blue-400 shrink-0"><CloudRain className="w-2.5 h-2.5"/>{rain}%</span>}
@@ -93,6 +94,7 @@ export default function Weather({ dims }: Props) {
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </div>
