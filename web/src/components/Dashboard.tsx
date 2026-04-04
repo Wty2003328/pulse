@@ -8,6 +8,9 @@ import StockTicker from './widgets/StockTicker';
 import Weather from './widgets/Weather';
 import Digest from './widgets/Digest';
 import Trending from './widgets/Trending';
+import SystemMonitor from './widgets/SystemMonitor';
+import Calendar from './widgets/Calendar';
+import ZeroClawAgent from './widgets/ZeroClawAgent';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { getWidgetSize } from '../lib/widget-size';
 import type { FeedResponse } from '../types';
@@ -17,17 +20,20 @@ const GAP = 8;
 const HEADER_HEIGHT = 49; // header px height
 
 const defaultLayout: Layout[] = [
-  { i: 'feed',       x: 0,  y: 0, w: 5, h: 7, minW: 2, minH: 2 },
-  { i: 'digest',     x: 5,  y: 0, w: 4, h: 5, minW: 2, minH: 2 },
+  { i: 'feed',       x: 0,  y: 0, w: 5, h: 6, minW: 2, minH: 2 },
+  { i: 'digest',     x: 5,  y: 0, w: 4, h: 4, minW: 2, minH: 2 },
   { i: 'weather',    x: 9,  y: 0, w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'trending',   x: 5,  y: 5, w: 4, h: 3, minW: 2, minH: 2 },
-  { i: 'stocks',     x: 9,  y: 4, w: 3, h: 3, minW: 2, minH: 2 },
-  { i: 'collectors', x: 9,  y: 7, w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'stocks',     x: 5,  y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+  { i: 'system',     x: 9,  y: 4, w: 3, h: 3, minW: 2, minH: 2 },
+  { i: 'calendar',   x: 0,  y: 6, w: 3, h: 4, minW: 2, minH: 2 },
+  { i: 'zeroclaw',   x: 3,  y: 6, w: 5, h: 4, minW: 3, minH: 3 },
+  { i: 'trending',   x: 8,  y: 7, w: 4, h: 3, minW: 2, minH: 2 },
+  { i: 'collectors', x: 0,  y: 10,w: 3, h: 3, minW: 2, minH: 2 },
 ];
 
 function loadLayout(): Layout[] {
   try {
-    const stored = localStorage.getItem('dashboard-layout-v5');
+    const stored = localStorage.getItem('dashboard-layout-v6');
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return defaultLayout;
@@ -101,7 +107,7 @@ export default function Dashboard() {
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard-layout-v5', JSON.stringify(newLayout));
+    localStorage.setItem('dashboard-layout-v6', JSON.stringify(newLayout));
   };
 
   const widgetDims = useMemo(() => {
@@ -152,6 +158,9 @@ export default function Dashboard() {
             <div key="stocks"><WidgetShell title="Stocks"><StockTicker key={`s-${refetchSignal}`} dims={widgetDims['stocks']} /></WidgetShell></div>
             <div key="trending"><WidgetShell title="Trending"><Trending key={`t-${refetchSignal}`} dims={widgetDims['trending']} /></WidgetShell></div>
             <div key="collectors"><WidgetShell title="Collectors"><CollectorStatus key={`c-${refetchSignal}`} dims={widgetDims['collectors']} /></WidgetShell></div>
+            <div key="system"><WidgetShell title="System"><SystemMonitor dims={widgetDims['system']} /></WidgetShell></div>
+            <div key="calendar"><WidgetShell title="Calendar"><Calendar dims={widgetDims['calendar']} /></WidgetShell></div>
+            <div key="zeroclaw"><WidgetShell title="ZeroClaw"><ZeroClawAgent dims={widgetDims['zeroclaw']} /></WidgetShell></div>
           </GridLayout>
         )}
       </main>

@@ -105,11 +105,16 @@ async fn main() -> Result<()> {
         //  when new items are inserted)
     });
 
+    // Initialize system monitor
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_all();
+
     // Build and start the web server
     let state = server::AppState {
         db,
         collectors: collector_list,
         ws_broadcast,
+        sysinfo: std::sync::Arc::new(std::sync::Mutex::new(sys)),
     };
 
     let app = server::build_router(state);

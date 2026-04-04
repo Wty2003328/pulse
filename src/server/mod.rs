@@ -1,9 +1,12 @@
 pub mod api;
+pub mod calendar;
 pub mod settings;
+pub mod system;
 pub mod ws;
+pub mod zeroclaw;
 
 use axum::{routing::get, Router};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tower_http::cors::CorsLayer;
 
 use crate::collectors::Collector;
@@ -16,6 +19,7 @@ pub struct AppState {
     pub db: Database,
     pub collectors: Vec<Arc<dyn Collector>>,
     pub ws_broadcast: WsBroadcast,
+    pub sysinfo: Arc<Mutex<sysinfo::System>>,
 }
 
 /// Build the Axum router with all routes and middleware.
@@ -26,6 +30,9 @@ pub fn build_router(state: AppState) -> Router {
     Router::new()
         .nest("/api", api_routes)
         .nest("/api/settings", settings_routes)
+        .nest("/api/system", system::routes())
+        .nest("/api/calendar", calendar::routes())
+        .nest("/api/zeroclaw", zeroclaw::routes())
         .route("/api/ws", get(ws::ws_handler))
         .fallback(serve_frontend)
         .layer(CorsLayer::permissive())

@@ -57,3 +57,6 @@ mime_guess = "2"
 
 # URL encoding/decoding
 urlencoding = "2"
+
+# System monitoring
+sysinfo = "0.33"
