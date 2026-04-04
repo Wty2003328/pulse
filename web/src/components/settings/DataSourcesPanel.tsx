@@ -144,7 +144,7 @@ export function DataSourcesPanel({ onToast }: Props) {
       <Card className="mb-6">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground mb-3">
-            Follow YouTube channels and Bilibili UP主. Videos fetched via RSS — no API key or login needed.
+            Follow YouTube channels and Bilibili UP主. YouTube uses built-in RSS (reliable). Bilibili uses RSSHub (may be unreliable — consider self-hosting RSSHub for best results).
           </p>
 
           {showAddVideo && <AddVideoForm onAdd={async (platform, channelId, name) => {

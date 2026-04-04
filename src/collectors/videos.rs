@@ -82,21 +82,43 @@ impl Collector for VideoCollector {
                 continue;
             }
 
-            match self
-                .fetch_feed(&url, platform, channel_id, display_name)
-                .await
-            {
-                Ok(mut feed_items) => {
-                    items.append(&mut feed_items);
+            // For Bilibili, try multiple RSSHub instances as fallbacks
+            let urls = if platform == "bilibili" {
+                vec![
+                    url.clone(),
+                    format!("https://hub.slarker.me/bilibili/user/video/{}", channel_id),
+                    format!(
+                        "https://rsshub.rssforever.com/bilibili/user/video/{}",
+                        channel_id
+                    ),
+                ]
+            } else {
+                vec![url.clone()]
+            };
+
+            let mut fetched = false;
+            for feed_url in &urls {
+                match self
+                    .fetch_feed(feed_url, platform, channel_id, display_name)
+                    .await
+                {
+                    Ok(mut feed_items) => {
+                        items.append(&mut feed_items);
+                        fetched = true;
+                        break;
+                    }
+                    Err(e) => {
+                        tracing::debug!("Feed {} failed: {}", feed_url, e);
+                    }
                 }
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to fetch {} feed for {}: {}",
-                        platform,
-                        display_name,
-                        e
-                    );
-                }
+            }
+            if !fetched {
+                tracing::warn!(
+                    "All feeds failed for {} {} ({})",
+                    platform,
+                    display_name,
+                    channel_id
+                );
             }
 
             // Small delay between requests
