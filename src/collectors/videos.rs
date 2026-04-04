@@ -74,27 +74,33 @@ impl Collector for VideoCollector {
 
         tracing::debug!("Fetching videos from {} channels", channels.len());
 
+        // Read custom RSSHub URL from settings (for Bilibili)
+        let rsshub_base = self
+            .db
+            .get_setting("rsshub_url")
+            .await
+            .ok()
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "https://rsshub.app".to_string());
+
         let mut items = Vec::new();
 
         for (platform, channel_id, display_name) in &channels {
-            let url = Self::feed_url(platform, channel_id);
-            if url.is_empty() {
+            // Build feed URLs — use custom RSSHub for Bilibili
+            let urls = if platform == "bilibili" {
+                vec![format!(
+                    "{}/bilibili/user/video/{}",
+                    rsshub_base.trim_end_matches('/'),
+                    channel_id
+                )]
+            } else {
+                vec![Self::feed_url(platform, channel_id)]
+            };
+
+            if urls[0].is_empty() {
                 continue;
             }
-
-            // For Bilibili, try multiple RSSHub instances as fallbacks
-            let urls = if platform == "bilibili" {
-                vec![
-                    url.clone(),
-                    format!("https://hub.slarker.me/bilibili/user/video/{}", channel_id),
-                    format!(
-                        "https://rsshub.rssforever.com/bilibili/user/video/{}",
-                        channel_id
-                    ),
-                ]
-            } else {
-                vec![url.clone()]
-            };
 
             let mut fetched = false;
             for feed_url in &urls {

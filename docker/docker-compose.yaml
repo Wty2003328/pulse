@@ -16,6 +16,21 @@ services:
       - OPENWEATHER_KEY=${OPENWEATHER_KEY:-}
     restart: unless-stopped
 
+  # Optional: RSSHub for Bilibili/Weibo/etc feeds
+  rsshub:
+    image: diygod/rsshub
+    ports:
+      - "1200:1200"
+    environment:
+      - NODE_ENV=production
+      - CACHE_TYPE=memory
+      - CACHE_EXPIRE=600
+      # For Bilibili: set BILIBILI_COOKIE_* values
+      # See https://docs.rsshub.app/deploy/config#bilibili
+    restart: unless-stopped
+    profiles:
+      - rsshub  # Only starts with: docker compose --profile rsshub up
+
   # Optional: local LLM
   ollama:
     image: ollama/ollama

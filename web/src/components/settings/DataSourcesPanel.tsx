@@ -16,6 +16,7 @@ export function DataSourcesPanel({ onToast }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [weatherLocation, setWeatherLocation] = useState('');
   const [stockSymbols, setStockSymbols] = useState('');
+  const [rsshubUrl, setRsshubUrl] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
   const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [calendarConnected, setCalendarConnected] = useState(false);
@@ -38,6 +39,7 @@ export function DataSourcesPanel({ onToast }: Props) {
         const d = await res.json();
         if (d.weather_location) setWeatherLocation(d.weather_location);
         if (d.stock_symbols) setStockSymbols(d.stock_symbols);
+        if (d.rsshub_url) setRsshubUrl(d.rsshub_url);
         if (d.google_client_id) setGoogleClientId(d.google_client_id);
         if (d.google_client_secret) setGoogleClientSecret(d.google_client_secret);
       }
@@ -50,6 +52,13 @@ export function DataSourcesPanel({ onToast }: Props) {
       const s = await fetch('/api/zeroclaw/status'); if (s.ok) setZeroclawStatus(await s.json());
     } catch {}
     setSettingsLoaded(true);
+  };
+
+  const saveRsshubUrl = async () => {
+    try {
+      const res = await fetch('/api/settings/app', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rsshub_url: rsshubUrl }) });
+      if (res.ok) onToast(rsshubUrl ? `RSSHub URL set to ${rsshubUrl}` : 'RSSHub URL cleared', 'success');
+    } catch { onToast('Failed', 'error'); }
   };
 
   const fetchVideoChannels = async () => {
@@ -144,8 +153,19 @@ export function DataSourcesPanel({ onToast }: Props) {
       <Card className="mb-6">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground mb-3">
-            Follow YouTube channels and Bilibili UP主. YouTube uses built-in RSS (reliable). Bilibili uses RSSHub (may be unreliable — consider self-hosting RSSHub for best results).
+            Follow YouTube channels and Bilibili UP主. YouTube uses built-in RSS. Bilibili requires a self-hosted <a href="https://docs.rsshub.app/deploy/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">RSSHub</a> instance.
           </p>
+
+          <div className="mb-3">
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">RSSHub URL (for Bilibili)</label>
+            <div className="flex gap-2">
+              <Input value={rsshubUrl} onChange={(e) => setRsshubUrl(e.target.value)}
+                placeholder="http://localhost:1200 or your self-hosted URL"
+                onKeyDown={(e) => { if (e.key === 'Enter') saveRsshubUrl(); }} className="flex-1" />
+              <Button variant="outline" size="sm" onClick={saveRsshubUrl}>Save</Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Run <code className="bg-muted px-1 rounded">docker compose --profile rsshub up -d</code> to start a local RSSHub, then enter <code className="bg-muted px-1 rounded">http://localhost:1200</code></p>
+          </div>
 
           {showAddVideo && <AddVideoForm onAdd={async (platform, channelId, name) => {
             try {
