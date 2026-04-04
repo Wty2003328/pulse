@@ -5,32 +5,25 @@ use std::time::Duration;
 
 use super::{parse_interval, Collector};
 use crate::storage::models::RawItem;
+use crate::storage::Database;
 
 /// Video subscription collector — fetches latest videos from YouTube channels
 /// and Bilibili UP主 via RSS/Atom feeds (no API keys needed).
+/// Reads channel list from database on every collect() call for hot-reload.
 pub struct VideoCollector {
     client: reqwest::Client,
-    /// List of (platform, channel_id, display_name) from database
-    channels: Vec<(String, String, String)>,
+    db: Database,
 }
 
 impl VideoCollector {
-    pub fn new() -> Self {
+    pub fn new(db: Database) -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(15))
             .user_agent("Pulse/0.1.0")
             .build()
             .unwrap_or_default();
 
-        Self {
-            client,
-            channels: Vec::new(),
-        }
-    }
-
-    pub fn with_channels(mut self, channels: Vec<(String, String, String)>) -> Self {
-        self.channels = channels;
-        self
+        Self { client, db }
     }
 
     fn feed_url(platform: &str, channel_id: &str) -> String {
@@ -68,20 +61,22 @@ impl Collector for VideoCollector {
     }
 
     fn enabled(&self) -> bool {
-        !self.channels.is_empty()
+        true // Always enabled — checks DB for channels each cycle
     }
 
     async fn collect(&self) -> Result<Vec<RawItem>> {
-        if self.channels.is_empty() {
+        // Hot-reload: read channels from database on every call
+        let channels = self.db.get_video_channels().await.unwrap_or_default();
+
+        if channels.is_empty() {
             return Ok(Vec::new());
         }
 
-        tracing::debug!("Fetching videos from {} channels", self.channels.len());
+        tracing::debug!("Fetching videos from {} channels", channels.len());
 
-        let now = Utc::now();
         let mut items = Vec::new();
 
-        for (platform, channel_id, display_name) in &self.channels {
+        for (platform, channel_id, display_name) in &channels {
             let url = Self::feed_url(platform, channel_id);
             if url.is_empty() {
                 continue;
@@ -111,7 +106,7 @@ impl Collector for VideoCollector {
         tracing::info!(
             "Fetched {} videos from {} channels",
             items.len(),
-            self.channels.len()
+            channels.len()
         );
         Ok(items)
     }
@@ -136,7 +131,7 @@ impl VideoCollector {
         let items: Vec<RawItem> = feed
             .entries
             .into_iter()
-            .take(10) // Latest 10 per channel
+            .take(10)
             .map(|entry| {
                 let title = entry
                     .title
@@ -161,9 +156,7 @@ impl VideoCollector {
                     .and_then(|m| m.thumbnails.first())
                     .map(|t| t.image.uri.clone())
                     .or_else(|| {
-                        // YouTube thumbnail fallback
                         if platform == "youtube" {
-                            // Extract video ID from yt:video:XXXXX format
                             let vid = video_id.strip_prefix("yt:video:").unwrap_or(&video_id);
                             Some(format!("https://i.ytimg.com/vi/{}/mqdefault.jpg", vid))
                         } else {
