@@ -17,7 +17,6 @@ import type { FeedResponse } from '../types';
 
 const COLS = 12;
 const GAP = 8;
-const HEADER_HEIGHT = 49; // header px height
 
 const defaultLayout: Layout[] = [
   { i: 'feed',       x: 0,  y: 0, w: 5, h: 6, minW: 1, minH: 1 },
@@ -58,13 +57,10 @@ export default function Dashboard() {
   const [refetchSignal, setRefetchSignal] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
 
-  // Measure container on mount and resize
   const measure = useCallback(() => {
     if (containerRef.current) {
       setContainerWidth(containerRef.current.offsetWidth);
-      setContainerHeight(window.innerHeight - HEADER_HEIGHT);
     }
   }, []);
 
@@ -85,25 +81,11 @@ export default function Dashboard() {
     () => console.log('WebSocket disconnected')
   );
 
-  // Compute row height so the grid fits exactly in the viewport
+  // Square cells based on width only — scroll vertically if needed
   const rowHeight = useMemo(() => {
-    if (containerWidth === 0 || containerHeight === 0) return 50;
-    // Calculate how many rows the tallest layout column needs
-    let maxRow = 0;
-    for (const item of layout) {
-      maxRow = Math.max(maxRow, item.y + item.h);
-    }
-    if (maxRow === 0) maxRow = 8;
-
-    // row height from width (square cells)
-    const cellFromWidth = (containerWidth - GAP * (COLS - 1)) / COLS;
-    // row height that fits viewport
-    const padding = 8; // top + bottom padding
-    const cellFromHeight = (containerHeight - padding - GAP * (maxRow - 1)) / maxRow;
-
-    // Use the smaller to ensure it fits in viewport
-    return Math.floor(Math.min(cellFromWidth, cellFromHeight));
-  }, [containerWidth, containerHeight, layout]);
+    if (containerWidth === 0) return 50;
+    return Math.floor((containerWidth - GAP * (COLS - 1)) / COLS);
+  }, [containerWidth]);
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
@@ -119,7 +101,7 @@ export default function Dashboard() {
   }, [layout, rowHeight]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <header className="flex items-center justify-between px-6 py-3 bg-card border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold tracking-tight text-foreground">Pulse</h1>
@@ -134,7 +116,7 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      <main ref={containerRef} className="flex-1 p-1 overflow-hidden">
+      <main ref={containerRef} className="flex-1 p-1 overflow-y-auto">
         {containerWidth > 0 && (
           <GridLayout
             className="w-full"

@@ -72,16 +72,20 @@ export default function Calendar({ dims }: Props) {
   };
 
   if (!status || !status.connected) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-        <CalIcon className="w-8 h-8 text-muted-foreground/50" />
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Connect your Google Calendar</p>
-          <Button size="sm" onClick={handleConnect} disabled={connecting}>
-            {connecting ? 'Connecting...' : 'Connect'}
-          </Button>
+    if (size === 'small') {
+      return (
+        <div className="flex-1 flex items-center justify-center cursor-pointer" onClick={handleConnect}>
+          <CalIcon className="w-6 h-6 text-muted-foreground/50" />
         </div>
-        <p className="text-xs text-muted-foreground">Configure credentials in Settings &gt; Data Sources</p>
+      );
+    }
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
+        <CalIcon className="w-8 h-8 text-muted-foreground/50" />
+        <p className="text-xs text-muted-foreground">Connect Google Calendar</p>
+        <Button size="sm" onClick={handleConnect} disabled={connecting}>
+          {connecting ? 'Connecting...' : 'Connect'}
+        </Button>
       </div>
     );
   }

@@ -91,10 +91,17 @@ export default function ZeroClawAgent({ dims }: Props) {
 
   // Not configured
   if (!config) {
+    if (size === 'small') {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <Bot className="w-6 h-6 text-muted-foreground/40" />
+        </div>
+      );
+    }
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-center">
         <Bot className="w-8 h-8 text-muted-foreground/50" />
-        <p className="text-xs text-muted-foreground">Configure ZeroClaw connection in Settings &gt; Data Sources</p>
+        <p className="text-xs text-muted-foreground">Configure in Settings</p>
       </div>
     );
   }
