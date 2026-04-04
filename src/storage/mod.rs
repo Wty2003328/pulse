@@ -205,13 +205,14 @@ impl Database {
         source: Option<&str>,
     ) -> Result<Vec<FeedItem>> {
         let base_query = if let Some(src) = source {
+            // Use LIKE prefix match so ?source=stock matches stock:AAPL, stock:GOOGL etc.
             format!(
                 "SELECT i.*, s.summary, sc.score FROM items i
                  LEFT JOIN summaries s ON s.item_id = i.id
                  LEFT JOIN (SELECT item_id, MAX(score) as score FROM scores GROUP BY item_id) sc ON sc.item_id = i.id
-                 WHERE i.source = '{}'
+                 WHERE (i.source = '{}' OR i.source LIKE '{}:%' OR i.collector_id = '{}')
                  ORDER BY i.collected_at DESC LIMIT {} OFFSET {}",
-                src, limit, offset
+                src, src, src, limit, offset
             )
         } else {
             format!(

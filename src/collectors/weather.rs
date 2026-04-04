@@ -145,18 +145,33 @@ impl Collector for WeatherCollector {
                 area_name, current.temp_F, current.temp_C, desc
             );
 
-            // Build forecast summary
+            // Build forecast summary with descriptions and rain chance
             let forecast: Vec<serde_json::Value> = wttr
                 .weather
                 .unwrap_or_default()
                 .into_iter()
                 .map(|day| {
+                    let desc = day
+                        .hourly
+                        .as_ref()
+                        .and_then(|h| h.get(4)) // midday hourly
+                        .and_then(|h| h.weather_desc.first())
+                        .map(|v| v.value.clone())
+                        .unwrap_or_default();
+                    let rain = day
+                        .hourly
+                        .as_ref()
+                        .and_then(|h| h.get(4))
+                        .map(|h| h.chance_of_rain.clone())
+                        .unwrap_or_default();
                     serde_json::json!({
                         "date": day.date,
                         "high_f": day.max_temp_f,
                         "low_f": day.min_temp_f,
                         "high_c": day.max_temp_c,
                         "low_c": day.min_temp_c,
+                        "description": desc,
+                        "rain_chance": rain,
                     })
                 })
                 .collect();

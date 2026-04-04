@@ -44,11 +44,10 @@ collectors:
   #     - "selfhosted"
   #     - "machinelearning"
 
-  # stocks:
-  #   enabled: false
-  #   interval: "5m"
-  #   symbols: ["AAPL", "GOOGL", "MSFT", "NVDA"]
-  #   api_key: "${ALPHA_VANTAGE_KEY}"
+  stocks:
+    enabled: true
+    interval: "5m"
+    symbols: ["AAPL", "GOOGL", "MSFT", "NVDA", "AMZN", "META", "TSLA"]
 
   weather:
     enabled: true
