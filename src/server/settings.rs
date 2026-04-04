@@ -34,6 +34,7 @@ pub fn routes() -> Router<AppState> {
         .route("/collectors/{id}/interval", put(set_collector_interval))
         .route("/feeds", get(list_user_feeds).post(add_user_feed))
         .route("/feeds/{url}", delete(remove_user_feed))
+        .route("/app", get(get_app_settings).put(save_app_settings))
 }
 
 // --- Response types ---
@@ -356,4 +357,39 @@ async fn remove_user_feed(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(serde_json::json!({ "status": "removed" })))
+}
+
+// --- App settings (weather location, stock symbols, etc.) ---
+
+async fn get_app_settings(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let all = state
+        .db
+        .get_all_settings()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let mut map = serde_json::Map::new();
+    for (k, v) in all {
+        map.insert(k, serde_json::Value::String(v));
+    }
+    Ok(Json(serde_json::Value::Object(map)))
+}
+
+async fn save_app_settings(
+    State(state): State<AppState>,
+    Json(body): Json<serde_json::Map<String, serde_json::Value>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    for (key, value) in &body {
+        let val_str = match value {
+            serde_json::Value::String(s) => s.clone(),
+            other => other.to_string(),
+        };
+        state
+            .db
+            .set_setting(key, &val_str)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+    Ok(Json(serde_json::json!({ "status": "saved" })))
 }

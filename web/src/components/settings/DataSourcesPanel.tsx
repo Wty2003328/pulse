@@ -4,7 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Loader2, Pencil, Check, X, Plus, Trash2, Rss } from 'lucide-react';
+import { Loader2, Pencil, Check, X, Plus, Trash2, Rss, MapPin, TrendingUp } from 'lucide-react';
 import type { CollectorsResponse } from '../../types';
 
 interface UserFeed { name: string; url: string }
@@ -14,239 +14,197 @@ export function DataSourcesPanel({ onToast }: Props) {
   const { data, loading, refetch } = useWidgetData<CollectorsResponse>('/api/collectors', 30000);
   const [feeds, setFeeds] = useState<UserFeed[]>([]);
   const [showAddFeed, setShowAddFeed] = useState(false);
+  const [weatherLocation, setWeatherLocation] = useState('');
+  const [stockSymbols, setStockSymbols] = useState('');
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const fetchFeeds = async () => {
-    try {
-      const res = await fetch('/api/settings/feeds');
-      if (res.ok) { const d = await res.json(); setFeeds(d.feeds || []); }
-    } catch { /* ignore */ }
+    try { const res = await fetch('/api/settings/feeds'); if (res.ok) { const d = await res.json(); setFeeds(d.feeds || []); } } catch {}
   };
 
-  useEffect(() => { fetchFeeds(); }, []);
+  const fetchAppSettings = async () => {
+    try {
+      const res = await fetch('/api/settings/app');
+      if (res.ok) {
+        const d = await res.json();
+        if (d.weather_location) setWeatherLocation(d.weather_location);
+        if (d.stock_symbols) setStockSymbols(d.stock_symbols);
+      }
+    } catch {}
+    setSettingsLoaded(true);
+  };
+
+  useEffect(() => { fetchFeeds(); fetchAppSettings(); }, []);
 
   const triggerCollector = async (id: string, name: string) => {
-    try {
-      await fetch(`/api/collectors/${id}/run`, { method: 'POST' });
-      onToast(`${name} collector triggered`, 'success');
-      setTimeout(refetch, 2000);
-    } catch { onToast('Failed to trigger collector', 'error'); }
+    try { await fetch(`/api/collectors/${id}/run`, { method: 'POST' }); onToast(`${name} triggered`, 'success'); setTimeout(refetch, 2000); }
+    catch { onToast('Failed', 'error'); }
   };
 
   const saveInterval = async (id: string, name: string, secs: number) => {
     try {
-      const res = await fetch(`/api/settings/collectors/${id}/interval`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interval_secs: secs }),
-      });
-      if (res.ok) { onToast(`${name} interval updated to ${formatInterval(secs)}`, 'success'); refetch(); }
-      else { onToast(`Failed: ${await res.text()}`, 'error'); }
-    } catch { onToast('Failed to save interval', 'error'); }
+      const res = await fetch(`/api/settings/collectors/${id}/interval`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ interval_secs: secs }) });
+      if (res.ok) { onToast(`${name} interval updated`, 'success'); refetch(); } else { onToast('Failed', 'error'); }
+    } catch { onToast('Failed', 'error'); }
   };
 
   const addFeed = async (name: string, url: string) => {
     try {
-      const res = await fetch('/api/settings/feeds', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, url }),
-      });
-      if (res.ok) { onToast(`Feed "${name}" added`, 'success'); fetchFeeds(); setShowAddFeed(false); }
-      else { onToast(`Failed: ${await res.text()}`, 'error'); }
-    } catch { onToast('Failed to add feed', 'error'); }
+      const res = await fetch('/api/settings/feeds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url }) });
+      if (res.ok) { onToast(`Feed "${name}" added`, 'success'); fetchFeeds(); setShowAddFeed(false); } else { onToast('Failed', 'error'); }
+    } catch { onToast('Failed', 'error'); }
   };
 
   const removeFeed = async (url: string, name: string) => {
     try {
       const res = await fetch(`/api/settings/feeds/${encodeURIComponent(url)}`, { method: 'DELETE' });
-      if (res.ok) { onToast(`Feed "${name}" removed`, 'success'); fetchFeeds(); }
-      else { onToast('Failed to remove feed', 'error'); }
-    } catch { onToast('Failed to remove feed', 'error'); }
+      if (res.ok) { onToast(`"${name}" removed`, 'success'); fetchFeeds(); }
+    } catch { onToast('Failed', 'error'); }
+  };
+
+  const saveWeatherLocation = async () => {
+    try {
+      const res = await fetch('/api/settings/app', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ weather_location: weatherLocation }) });
+      if (res.ok) onToast(`Weather location set to "${weatherLocation}"`, 'success'); else onToast('Failed', 'error');
+    } catch { onToast('Failed', 'error'); }
+  };
+
+  const saveStockSymbols = async () => {
+    try {
+      const res = await fetch('/api/settings/app', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock_symbols: stockSymbols }) });
+      if (res.ok) onToast('Stock symbols saved', 'success'); else onToast('Failed', 'error');
+    } catch { onToast('Failed', 'error'); }
   };
 
   return (
     <div>
       <h2 className="text-lg font-semibold mb-1">Data Sources</h2>
-      <p className="text-sm text-muted-foreground mb-6">
-        Manage collectors and RSS feeds. Core sources are configured in <code className="text-xs bg-muted px-1.5 py-0.5 rounded">config/default.yaml</code>.
-      </p>
+      <p className="text-sm text-muted-foreground mb-6">Configure what data feeds your dashboard.</p>
 
-      {/* Active collectors */}
+      {/* Weather Location */}
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />Weather</h3>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground mb-2">Weather data from <a href="https://wttr.in" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">wttr.in</a> (free, no API key needed). Enter a city name.</p>
+          <div className="flex gap-2">
+            <Input value={weatherLocation} onChange={(e) => setWeatherLocation(e.target.value)} placeholder="e.g. San Francisco, London, Tokyo"
+              onKeyDown={(e) => { if (e.key === 'Enter') saveWeatherLocation(); }} className="flex-1" />
+            <Button variant="outline" size="sm" onClick={saveWeatherLocation} disabled={!weatherLocation.trim()}>Save</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stock Symbols */}
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><TrendingUp className="w-3.5 h-3.5" />Stocks</h3>
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground mb-2">Stock data from Yahoo Finance (free, no API key). Enter comma-separated ticker symbols.</p>
+          <div className="flex gap-2">
+            <Input value={stockSymbols} onChange={(e) => setStockSymbols(e.target.value)} placeholder="e.g. AAPL, GOOGL, MSFT, NVDA, TSLA"
+              onKeyDown={(e) => { if (e.key === 'Enter') saveStockSymbols(); }} className="flex-1" />
+            <Button variant="outline" size="sm" onClick={saveStockSymbols} disabled={!stockSymbols.trim()}>Save</Button>
+          </div>
+          {stockSymbols && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {stockSymbols.split(',').map(s => s.trim()).filter(Boolean).map(s => (
+                <span key={s} className="text-[0.65rem] font-bold text-foreground bg-muted px-1.5 py-0.5 rounded">{s}</span>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Collectors */}
       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collectors</h3>
       {loading ? (
-        <div className="space-y-3 mb-8">
-          {[1, 2].map((i) => <div key={i} className="h-16 rounded-lg bg-card border border-border animate-pulse" />)}
-        </div>
-      ) : !data || data.collectors.length === 0 ? (
-        <Card className="mb-8">
-          <CardContent className="p-6 text-center text-muted-foreground text-sm">No collectors configured.</CardContent>
-        </Card>
+        <div className="space-y-3 mb-6">{[1, 2].map((i) => <div key={i} className="h-16 rounded-lg bg-card border border-border animate-pulse" />)}</div>
       ) : (
-        <div className="space-y-2 mb-8">
-          {data.collectors.map((collector) => {
+        <div className="space-y-2 mb-6">
+          {data?.collectors.map((collector) => {
             const lastRun = data.recent_runs.find((r) => r.collector_id === collector.id);
-            return (
-              <CollectorRow
-                key={collector.id}
-                collector={collector}
-                lastRun={lastRun}
-                onTrigger={() => triggerCollector(collector.id, collector.name)}
-                onSaveInterval={(secs) => saveInterval(collector.id, collector.name, secs)}
-              />
-            );
+            return <CollectorRow key={collector.id} collector={collector} lastRun={lastRun}
+              onTrigger={() => triggerCollector(collector.id, collector.name)}
+              onSaveInterval={(secs) => saveInterval(collector.id, collector.name, secs)} />;
           })}
         </div>
       )}
 
-      {/* User RSS feeds */}
+      {/* Custom RSS feeds */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Custom RSS Feeds</h3>
-        {!showAddFeed && (
-          <Button variant="outline" size="sm" onClick={() => setShowAddFeed(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" /> Add Feed
-          </Button>
-        )}
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Rss className="w-3.5 h-3.5" />Custom RSS Feeds</h3>
+        {!showAddFeed && <Button variant="outline" size="sm" onClick={() => setShowAddFeed(true)}><Plus className="w-3.5 h-3.5 mr-1" />Add Feed</Button>}
       </div>
-
-      {showAddFeed && (
-        <AddFeedForm
-          onAdd={addFeed}
-          onCancel={() => setShowAddFeed(false)}
-        />
-      )}
-
+      {showAddFeed && <AddFeedForm onAdd={addFeed} onCancel={() => setShowAddFeed(false)} />}
       {feeds.length > 0 ? (
         <div className="space-y-2">
           {feeds.map((feed) => (
-            <Card key={feed.url}>
-              <CardContent className="p-3 flex items-center gap-3">
-                <Rss className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{feed.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{feed.url}</div>
-                </div>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => removeFeed(feed.url, feed.name)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </CardContent>
-            </Card>
+            <Card key={feed.url}><CardContent className="p-3 flex items-center gap-3">
+              <Rss className="w-4 h-4 text-primary shrink-0" />
+              <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{feed.name}</div><div className="text-xs text-muted-foreground truncate">{feed.url}</div></div>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => removeFeed(feed.url, feed.name)}><Trash2 className="w-3.5 h-3.5" /></Button>
+            </CardContent></Card>
           ))}
         </div>
       ) : !showAddFeed && (
-        <Card>
-          <CardContent className="p-4 text-center text-muted-foreground text-sm">
-            No custom feeds added yet. Click "Add Feed" to subscribe to an RSS/Atom feed.
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4 text-center text-muted-foreground text-sm">No custom feeds. Click "Add Feed" to subscribe.</CardContent></Card>
       )}
     </div>
   );
 }
 
-/* ── Add Feed Form ── */
-
 function AddFeedForm({ onAdd, onCancel }: { onAdd: (name: string, url: string) => void; onCancel: () => void }) {
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!name.trim() || !url.trim()) return;
-    setSaving(true);
-    await onAdd(name.trim(), url.trim());
-    setSaving(false);
-  };
-
+  const [name, setName] = useState(''); const [url, setUrl] = useState(''); const [saving, setSaving] = useState(false);
+  const handleSubmit = async () => { if (!name.trim() || !url.trim()) return; setSaving(true); await onAdd(name.trim(), url.trim()); setSaving(false); };
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4 space-y-3">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Feed Name</label>
-          <Input placeholder="e.g. My Favorite Blog" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Feed URL</label>
-          <Input placeholder="https://example.com/feed.xml" value={url} onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} />
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleSubmit} disabled={saving || !name.trim() || !url.trim()}>
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add Feed'}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-        </div>
-      </CardContent>
-    </Card>
+    <Card className="mb-4"><CardContent className="p-4 space-y-3">
+      <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Feed Name</label><Input placeholder="e.g. My Blog" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
+      <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Feed URL</label><Input placeholder="https://example.com/feed.xml" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} /></div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleSubmit} disabled={saving || !name.trim() || !url.trim()}>{saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add Feed'}</Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+      </div>
+    </CardContent></Card>
   );
 }
 
-/* ── Collector Row ── */
-
-function CollectorRow({
-  collector, lastRun, onTrigger, onSaveInterval,
-}: {
+function CollectorRow({ collector, lastRun, onTrigger, onSaveInterval }: {
   collector: { id: string; name: string; enabled: boolean; interval_secs: number };
   lastRun?: { status: string; items_count: number } | null;
   onTrigger: () => void; onSaveInterval: (secs: number) => void;
 }) {
-  const [editingInterval, setEditingInterval] = useState(false);
-  const [intervalValue, setIntervalValue] = useState(String(collector.interval_secs));
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(String(collector.interval_secs));
   const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    const secs = parseInt(intervalValue, 10);
-    if (isNaN(secs) || secs < 10) return;
-    setSaving(true); await onSaveInterval(secs); setSaving(false); setEditingInterval(false);
-  };
-
-  const handleCancel = () => { setIntervalValue(String(collector.interval_secs)); setEditingInterval(false); };
-
+  const save = async () => { const s = parseInt(val); if (isNaN(s) || s < 10) return; setSaving(true); await onSaveInterval(s); setSaving(false); setEditing(false); };
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-sm font-medium">{collector.name}</span>
-              <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.6rem]">
-                {collector.enabled ? 'Enabled' : 'Disabled'}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-muted-foreground">Refresh:</span>
-              {editingInterval ? (
-                <div className="flex items-center gap-1.5">
-                  <Input type="number" min="10" value={intervalValue} onChange={(e) => setIntervalValue(e.target.value)}
-                    className="h-6 w-20 text-xs px-2" autoFocus
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel(); }} />
-                  <span className="text-xs text-muted-foreground">sec</span>
-                  <button onClick={handleSave} disabled={saving} className="text-success hover:text-success/80 cursor-pointer">
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  </button>
-                  <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground cursor-pointer"><X className="w-3.5 h-3.5" /></button>
-                </div>
-              ) : (
-                <button onClick={() => setEditingInterval(true)} className="flex items-center gap-1 text-xs text-foreground hover:text-primary transition-colors cursor-pointer group">
-                  <span className="font-medium">{formatInterval(collector.interval_secs)}</span>
-                  <Pencil className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              )}
-            </div>
-            {lastRun && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Last:</span>
-                <Badge variant={lastRun.status === 'success' ? 'success' : lastRun.status === 'running' ? 'warning' : 'destructive'} className="text-[0.55rem] px-1 py-0">{lastRun.status}</Badge>
-                <span>{lastRun.items_count} items</span>
-              </div>
-            )}
-          </div>
-          {collector.enabled && <Button variant="outline" size="sm" className="shrink-0" onClick={onTrigger}>Run Now</Button>}
+    <Card><CardContent className="p-3 flex items-center justify-between gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-sm font-medium">{collector.name}</span>
+          <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.6rem]">{collector.enabled ? 'ON' : 'OFF'}</Badge>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Refresh:</span>
+          {editing ? (
+            <div className="flex items-center gap-1">
+              <Input type="number" min="10" value={val} onChange={(e) => setVal(e.target.value)} className="h-5 w-16 text-xs px-1.5" autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }} />
+              <span className="text-[0.6rem]">sec</span>
+              <button onClick={save} disabled={saving} className="text-success cursor-pointer">{saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}</button>
+              <button onClick={() => setEditing(false)} className="text-muted-foreground cursor-pointer"><X className="w-3 h-3" /></button>
+            </div>
+          ) : (
+            <button onClick={() => setEditing(true)} className="flex items-center gap-0.5 hover:text-primary cursor-pointer group">
+              <span className="font-medium">{formatInterval(collector.interval_secs)}</span>
+              <Pencil className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100" />
+            </button>
+          )}
+          {lastRun && <><Badge variant={lastRun.status === 'success' ? 'success' : 'destructive'} className="text-[0.55rem] px-1 py-0">{lastRun.status}</Badge><span>{lastRun.items_count} items</span></>}
+        </div>
+      </div>
+      {collector.enabled && <Button variant="outline" size="sm" onClick={onTrigger}>Run Now</Button>}
+    </CardContent></Card>
   );
 }
 
-function formatInterval(secs: number): string {
-  if (secs < 60) return `${secs}s`;
-  if (secs < 3600) return `${Math.round(secs / 60)}m`;
-  return `${(secs / 3600).toFixed(1).replace(/\.0$/, '')}h`;
-}
+function formatInterval(s: number) { return s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s/60)}m` : `${(s/3600).toFixed(1).replace(/\.0$/,'')}h`; }

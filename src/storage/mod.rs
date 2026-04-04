@@ -485,6 +485,49 @@ impl Database {
         Ok(())
     }
 
+    // --- App Settings (key-value) ---
+
+    pub async fn get_setting(&self, key: &str) -> Result<Option<String>> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        )
+        .execute(&self.pool)
+        .await?;
+        let row: Option<(String,)> = sqlx::query_as("SELECT value FROM app_settings WHERE key = ?")
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(row.map(|r| r.0))
+    }
+
+    pub async fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        )
+        .execute(&self.pool)
+        .await?;
+        sqlx::query(
+            "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        )
+        .bind(key)
+        .bind(value)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn get_all_settings(&self) -> Result<Vec<(String, String)>> {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        )
+        .execute(&self.pool)
+        .await?;
+        let rows: Vec<(String, String)> = sqlx::query_as("SELECT key, value FROM app_settings")
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(rows)
+    }
+
     // --- User RSS Feeds ---
 
     /// Get all user-added RSS feeds.
