@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import GridLayout, { Layout } from 'react-grid-layout';
 import { Settings as SettingsIcon, GripHorizontal } from 'lucide-react';
@@ -9,13 +9,12 @@ import Weather from './widgets/Weather';
 import Digest from './widgets/Digest';
 import Trending from './widgets/Trending';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useContainerWidth } from '../hooks/useContainerWidth';
 import { getWidgetSize } from '../lib/widget-size';
 import type { FeedResponse } from '../types';
 
 const COLS = 12;
 const GAP = 8;
-const PADDING = 12;
+const HEADER_HEIGHT = 49; // header px height
 
 const defaultLayout: Layout[] = [
   { i: 'feed',       x: 0,  y: 0, w: 5, h: 7, minW: 2, minH: 2 },
@@ -28,7 +27,7 @@ const defaultLayout: Layout[] = [
 
 function loadLayout(): Layout[] {
   try {
-    const stored = localStorage.getItem('dashboard-layout-v4');
+    const stored = localStorage.getItem('dashboard-layout-v5');
     if (stored) return JSON.parse(stored);
   } catch { /* ignore */ }
   return defaultLayout;
@@ -37,9 +36,9 @@ function loadLayout(): Layout[] {
 function WidgetShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col h-full">
-      <div className="widget-drag-handle flex items-center gap-1.5 px-3 py-1.5 border-b border-border/50 cursor-grab active:cursor-grabbing shrink-0 select-none">
+      <div className="widget-drag-handle flex items-center gap-1.5 px-3 py-1 border-b border-border/50 cursor-grab active:cursor-grabbing shrink-0 select-none">
         <GripHorizontal className="w-3.5 h-3.5 text-muted-foreground/40" />
-        <span className="text-[0.65rem] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
+        <span className="text-[0.6rem] font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
       </div>
       <div className="p-2 flex flex-col flex-1 overflow-hidden">
         {children}
@@ -51,29 +50,58 @@ function WidgetShell({ children, title }: { children: React.ReactNode; title: st
 export default function Dashboard() {
   const [layout, setLayout] = useState<Layout[]>(loadLayout);
   const [refetchSignal, setRefetchSignal] = useState(0);
-  const { ref: containerRef, width: containerWidth } = useContainerWidth();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  // Measure container on mount and resize
+  const measure = useCallback(() => {
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.offsetWidth);
+      setContainerHeight(window.innerHeight - HEADER_HEIGHT);
+    }
+  }, []);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    const observer = new ResizeObserver(measure);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => { window.removeEventListener('resize', measure); observer.disconnect(); };
+  }, [measure]);
 
   useWebSocket(
     (data) => {
       const msg = data as { type: string; payload?: FeedResponse };
-      if (msg.type === 'new_items') {
-        setRefetchSignal((prev) => prev + 1);
-      }
+      if (msg.type === 'new_items') setRefetchSignal((prev) => prev + 1);
     },
     () => console.log('WebSocket connected'),
     () => console.log('WebSocket disconnected')
   );
 
+  // Compute row height so the grid fits exactly in the viewport
   const rowHeight = useMemo(() => {
-    if (containerWidth === 0) return 50;
-    const totalGaps = GAP * (COLS - 1);
-    const totalPadding = PADDING * 2;
-    return (containerWidth - totalGaps - totalPadding) / COLS;
-  }, [containerWidth]);
+    if (containerWidth === 0 || containerHeight === 0) return 50;
+    // Calculate how many rows the tallest layout column needs
+    let maxRow = 0;
+    for (const item of layout) {
+      maxRow = Math.max(maxRow, item.y + item.h);
+    }
+    if (maxRow === 0) maxRow = 8;
+
+    // row height from width (square cells)
+    const cellFromWidth = (containerWidth - GAP * (COLS - 1)) / COLS;
+    // row height that fits viewport
+    const padding = 8; // top + bottom padding
+    const cellFromHeight = (containerHeight - padding - GAP * (maxRow - 1)) / maxRow;
+
+    // Use the smaller to ensure it fits in viewport
+    return Math.floor(Math.min(cellFromWidth, cellFromHeight));
+  }, [containerWidth, containerHeight, layout]);
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
-    localStorage.setItem('dashboard-layout-v4', JSON.stringify(newLayout));
+    localStorage.setItem('dashboard-layout-v5', JSON.stringify(newLayout));
   };
 
   const widgetDims = useMemo(() => {
@@ -85,8 +113,8 @@ export default function Dashboard() {
   }, [layout, rowHeight]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex items-center justify-between px-6 py-3 bg-card border-b border-border">
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      <header className="flex items-center justify-between px-6 py-3 bg-card border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold tracking-tight text-foreground">Pulse</h1>
           <span className="text-xs text-muted-foreground hidden sm:inline">Personal Intelligence Dashboard</span>
@@ -100,7 +128,7 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      <main ref={containerRef} className="p-3">
+      <main ref={containerRef} className="flex-1 p-1 overflow-hidden">
         {containerWidth > 0 && (
           <GridLayout
             className="w-full"
@@ -108,13 +136,13 @@ export default function Dashboard() {
             onLayoutChange={handleLayoutChange}
             cols={COLS}
             rowHeight={rowHeight}
-            width={containerWidth - PADDING * 2}
+            width={containerWidth - 8}
             draggableHandle=".widget-drag-handle"
             isDraggable={true}
             isResizable={true}
             compactType="vertical"
             preventCollision={false}
-            containerPadding={[0, 0]}
+            containerPadding={[4, 4]}
             resizeHandles={['se', 'sw', 'ne', 'nw']}
             margin={[GAP, GAP]}
           >
