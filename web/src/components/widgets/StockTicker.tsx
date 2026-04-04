@@ -27,8 +27,9 @@ function DirIcon({ dir }: { dir: string }) {
   return <Minus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />;
 }
 
-function StockRow({ item, expandable, defaultExpanded }: { item: FeedItem; expandable?: boolean; defaultExpanded?: boolean }) {
-  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
+function StockRow({ item, expandable, forceExpanded }: { item: FeedItem; expandable?: boolean; forceExpanded?: boolean }) {
+  const [manualExpanded, setManualExpanded] = useState(false);
+  const expanded = forceExpanded || manualExpanded;
   const m = item.metadata as unknown as StockMeta;
   const pos = m.direction === 'up'; const neg = m.direction === 'down';
   const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
@@ -36,7 +37,7 @@ function StockRow({ item, expandable, defaultExpanded }: { item: FeedItem; expan
 
   return (
     <div className={cn('rounded-md', bg)}>
-      <div className={cn('flex items-center gap-2 px-2.5 py-1.5', expandable && 'cursor-pointer')} onClick={() => expandable && setExpanded(!expanded)}>
+      <div className={cn('flex items-center gap-2 px-2.5 py-1.5', expandable && 'cursor-pointer')} onClick={() => expandable && setManualExpanded(!manualExpanded)}>
         <DirIcon dir={m.direction} />
         <span className="text-sm font-bold uppercase w-14 shrink-0">{m.symbol}</span>
         <span className={cn('text-sm font-semibold flex-1', color)}>${m.price.toFixed(2)}</span>
@@ -98,7 +99,7 @@ export default function StockTicker({ dims }: Props) {
   const max = itemsForHeight(h, rh, autoExpand ? 90 : 34);
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-1">{data.items.slice(0, max).map((i) => <StockRow key={i.id} item={i} expandable defaultExpanded={autoExpand} />)}</div>
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1">{data.items.slice(0, max).map((i) => <StockRow key={i.id} item={i} expandable forceExpanded={autoExpand} />)}</div>
     </div>
   );
 }

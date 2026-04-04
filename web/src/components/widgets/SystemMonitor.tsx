@@ -28,13 +28,21 @@ export default function SystemMonitor({ dims }: Props) {
   if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-sm">Error</div>;
   if (!data) return null;
 
-  /* Small */
+  /* Small: all 3 metrics compact */
   if (size === 'small') {
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-1">
-        <Cpu className="w-5 h-5 text-primary" />
-        <span className="text-2xl font-bold">{data.cpu_percent.toFixed(0)}%</span>
-        <span className="text-xs text-muted-foreground">CPU</span>
+      <div className="flex flex-col h-full justify-center gap-1">
+        {[
+          { label: 'CPU', pct: data.cpu_percent, icon: Cpu, color: 'text-primary' },
+          { label: 'RAM', pct: data.memory_percent, icon: Server, color: 'text-cyan-400' },
+          { label: 'DSK', pct: data.disk_percent, icon: HardDrive, color: 'text-yellow-400' },
+        ].map(({ label, pct, icon: I, color }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <I className={`w-3 h-3 ${color} shrink-0`} />
+            <div className="flex-1"><Bar pct={pct} color={barColor(pct)} /></div>
+            <span className="text-xs font-bold w-8 text-right">{pct.toFixed(0)}%</span>
+          </div>
+        ))}
       </div>
     );
   }
