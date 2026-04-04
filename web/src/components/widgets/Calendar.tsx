@@ -81,7 +81,7 @@ export default function Calendar({ dims }: Props) {
             {connecting ? 'Connecting...' : 'Connect'}
           </Button>
         </div>
-        <p className="text-[0.6rem] text-muted-foreground">Configure credentials in Settings &gt; Data Sources</p>
+        <p className="text-xs text-muted-foreground">Configure credentials in Settings &gt; Data Sources</p>
       </div>
     );
   }
@@ -104,8 +104,8 @@ function CalendarEvents({ size, dims }: { size: string; dims?: WidgetDimensions 
       <div className="flex flex-col h-full overflow-y-auto gap-1">
         {data.events.slice(0, 4).map((ev) => (
           <div key={ev.id} className={`py-1 border-l-2 pl-2 ${isNow(ev.start, ev.end) ? 'border-l-primary bg-primary/5' : 'border-l-border'}`}>
-            <div className="text-[0.6rem] text-muted-foreground">{ev.all_day ? 'All day' : formatTime(ev.start)}</div>
-            <div className="text-[0.7rem] font-medium truncate">{ev.title}</div>
+            <div className="text-xs text-muted-foreground">{ev.all_day ? 'All day' : formatTime(ev.start)}</div>
+            <div className="text-xs font-medium truncate">{ev.title}</div>
           </div>
         ))}
       </div>
@@ -124,7 +124,7 @@ function CalendarEvents({ size, dims }: { size: string; dims?: WidgetDimensions 
     <div className="flex flex-col h-full overflow-y-auto gap-2">
       {Array.from(grouped.entries()).map(([day, events]) => (
         <div key={day}>
-          <div className="text-[0.55rem] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{day}</div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">{day}</div>
           <div className="flex flex-col gap-0.5">
             {events.map((ev) => {
               const current = isNow(ev.start, ev.end);
@@ -132,18 +132,18 @@ function CalendarEvents({ size, dims }: { size: string; dims?: WidgetDimensions 
                 <div key={ev.id} className={`flex gap-2 p-1.5 rounded-md border-l-2 ${current ? 'border-l-primary bg-primary/5' : 'border-l-border'}`}>
                   <div className="w-14 shrink-0 text-right">
                     {ev.all_day ? (
-                      <span className="text-[0.6rem] text-muted-foreground">All day</span>
+                      <span className="text-xs text-muted-foreground">All day</span>
                     ) : (
                       <div>
-                        <div className="text-[0.65rem] font-medium">{formatTime(ev.start)}</div>
-                        <div className="text-[0.55rem] text-muted-foreground">{formatTime(ev.end)}</div>
+                        <div className="text-xs font-medium">{formatTime(ev.start)}</div>
+                        <div className="text-xs text-muted-foreground">{formatTime(ev.end)}</div>
                       </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[0.75rem] font-medium truncate">{ev.title}</div>
+                    <div className="text-sm font-medium truncate">{ev.title}</div>
                     {ev.location && size !== 'medium' && (
-                      <div className="text-[0.55rem] text-muted-foreground flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5 shrink-0" />{ev.location}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5 shrink-0" />{ev.location}</div>
                     )}
                   </div>
                 </div>

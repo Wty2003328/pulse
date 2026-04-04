@@ -106,12 +106,12 @@ export default function ZeroClawAgent({ dims }: Props) {
       <div className="flex flex-col h-full justify-center gap-1.5">
         <div className="flex items-center gap-1.5">
           {connected ? <Circle className="w-2.5 h-2.5 text-success fill-success" /> : <Circle className="w-2.5 h-2.5 text-destructive fill-destructive" />}
-          <span className="text-[0.65rem] font-medium">{connected ? 'Connected' : 'Offline'}</span>
+          <span className="text-xs font-medium">{connected ? 'Connected' : 'Offline'}</span>
         </div>
         {lastMsg && (
-          <p className="text-[0.6rem] text-muted-foreground line-clamp-2">{lastMsg.content.slice(0, 80)}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2">{lastMsg.content.slice(0, 80)}</p>
         )}
-        {streaming && <p className="text-[0.6rem] text-primary animate-pulse truncate">{streaming.slice(-60)}</p>}
+        {streaming && <p className="text-xs text-primary animate-pulse truncate">{streaming.slice(-60)}</p>}
       </div>
     );
   }
@@ -122,7 +122,7 @@ export default function ZeroClawAgent({ dims }: Props) {
       {/* Status bar */}
       <div className="flex items-center gap-1.5 mb-1 shrink-0">
         {connected ? <Circle className="w-2 h-2 text-success fill-success" /> : <Circle className="w-2 h-2 text-destructive fill-destructive" />}
-        <span className="text-[0.6rem] text-muted-foreground">{connected ? 'Connected' : 'Offline'}</span>
+        <span className="text-xs text-muted-foreground">{connected ? 'Connected' : 'Offline'}</span>
       </div>
 
       {/* Messages */}
@@ -179,13 +179,13 @@ function MessageBubble({ msg, large }: { msg: ZCMessage; large: boolean }) {
     return (
       <div className="max-w-[90%]">
         <button onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-[0.6rem] text-muted-foreground hover:text-foreground cursor-pointer">
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer">
           {isCall ? <Wrench className="w-3 h-3 text-warning" /> : <CheckCircle className="w-3 h-3 text-success" />}
           <span className="font-medium">{msg.toolName || (isCall ? 'Tool call' : 'Result')}</span>
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
         {expanded && large && (
-          <pre className="text-[0.55rem] text-muted-foreground bg-background p-1.5 rounded mt-0.5 overflow-x-auto max-h-24">{msg.content.slice(0, 500)}</pre>
+          <pre className="text-xs text-muted-foreground bg-background p-1.5 rounded mt-0.5 overflow-x-auto max-h-24">{msg.content.slice(0, 500)}</pre>
         )}
       </div>
     );
@@ -193,7 +193,7 @@ function MessageBubble({ msg, large }: { msg: ZCMessage; large: boolean }) {
 
   // system
   return (
-    <div className="text-[0.6rem] text-muted-foreground italic text-center flex items-center justify-center gap-1">
+    <div className="text-xs text-muted-foreground italic text-center flex items-center justify-center gap-1">
       <AlertCircle className="w-3 h-3" />{msg.content}
     </div>
   );

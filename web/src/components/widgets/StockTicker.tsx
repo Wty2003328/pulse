@@ -6,10 +6,10 @@ import { ChevronDown, ChevronUp, ExternalLink, TrendingUp, TrendingDown, Minus }
 import type { WidgetDimensions } from '../../lib/widget-size';
 import type { FeedResponse, FeedItem } from '../../types';
 
-interface StockMetadata {
+interface StockMeta {
   symbol: string; name: string; price: number; change: number; change_percent: number; direction: string;
   volume?: number; previous_close?: number; open?: number; day_high?: number; day_low?: number;
-  '52w_high'?: number; '52w_low'?: number; market_cap?: number; currency?: string;
+  '52w_high'?: number; '52w_low'?: number; market_cap?: number;
 }
 
 function fmt(n: number | undefined): string {
@@ -21,58 +21,33 @@ function fmt(n: number | undefined): string {
   return n.toFixed(2);
 }
 
-/* ── Small: compact ticker strip ── */
-function SmallStockRow({ item }: { item: FeedItem }) {
-  const m = item.metadata as unknown as StockMetadata;
-  const pos = m.direction === 'up'; const neg = m.direction === 'down';
-  const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
-  return (
-    <div className="flex items-center justify-between py-0.5 gap-1">
-      <div className="flex items-center gap-1 min-w-0">
-        {pos ? <TrendingUp className="w-2.5 h-2.5 text-success shrink-0" /> : neg ? <TrendingDown className="w-2.5 h-2.5 text-destructive shrink-0" /> : <Minus className="w-2.5 h-2.5 text-muted-foreground shrink-0" />}
-        <span className="text-[0.65rem] font-bold uppercase">{m.symbol}</span>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className={cn('text-[0.65rem] font-semibold', color)}>${m.price.toFixed(2)}</span>
-        <span className={cn('text-[0.55rem] font-medium', color)}>{pos ? '+' : ''}{m.change_percent.toFixed(1)}%</span>
-      </div>
-    </div>
-  );
+function DirIcon({ dir }: { dir: string }) {
+  if (dir === 'up') return <TrendingUp className="w-3.5 h-3.5 text-success shrink-0" />;
+  if (dir === 'down') return <TrendingDown className="w-3.5 h-3.5 text-destructive shrink-0" />;
+  return <Minus className="w-3.5 h-3.5 text-muted-foreground shrink-0" />;
 }
 
-/* ── Medium: price + volume + day range bar ── */
-function MediumStockRow({ item }: { item: FeedItem }) {
+function StockRow({ item, expandable }: { item: FeedItem; expandable?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const m = item.metadata as unknown as StockMetadata;
+  const m = item.metadata as unknown as StockMeta;
   const pos = m.direction === 'up'; const neg = m.direction === 'down';
   const color = pos ? 'text-success' : neg ? 'text-destructive' : 'text-muted-foreground';
-  const bgColor = pos ? 'bg-success/8' : neg ? 'bg-destructive/8' : 'bg-muted';
-
-  // Day range bar position (where current price sits between low and high)
-  const dayLow = m.day_low ?? m.price;
-  const dayHigh = m.day_high ?? m.price;
-  const range = dayHigh - dayLow;
-  const pctInRange = range > 0 ? ((m.price - dayLow) / range) * 100 : 50;
+  const bg = pos ? 'bg-success/8' : neg ? 'bg-destructive/8' : 'bg-muted';
 
   return (
-    <div className={cn('rounded-md transition-colors', bgColor)}>
-      <div className="flex items-center gap-2 px-2 py-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <div className="flex items-center gap-1 min-w-0 w-16 shrink-0">
-          {pos ? <TrendingUp className="w-3 h-3 text-success shrink-0" /> : neg ? <TrendingDown className="w-3 h-3 text-destructive shrink-0" /> : <Minus className="w-3 h-3 text-muted-foreground shrink-0" />}
-          <span className="text-[0.7rem] font-bold uppercase">{m.symbol}</span>
-        </div>
-        <span className={cn('text-[0.7rem] font-semibold w-16 text-right shrink-0', color)}>${m.price.toFixed(2)}</span>
-        <span className={cn('text-[0.6rem] font-medium w-12 text-right shrink-0', color)}>{pos ? '+' : ''}{m.change_percent.toFixed(2)}%</span>
-        {/* Day range micro bar */}
-        <div className="flex-1 min-w-8 h-1 bg-border/60 rounded-full overflow-hidden relative mx-1 hidden sm:block">
-          <div className="absolute top-0 h-full w-1 bg-foreground/60 rounded-full" style={{ left: `${pctInRange}%`, transform: 'translateX(-50%)' }} />
-        </div>
-        <span className="text-[0.55rem] text-muted-foreground w-10 text-right shrink-0 hidden sm:block">{fmt(m.volume)}</span>
-        {expanded ? <ChevronUp className="w-3 h-3 text-muted-foreground shrink-0" /> : <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />}
+    <div className={cn('rounded-md', bg)}>
+      <div className={cn('flex items-center gap-2 px-2.5 py-1.5', expandable && 'cursor-pointer')} onClick={() => expandable && setExpanded(!expanded)}>
+        <DirIcon dir={m.direction} />
+        <span className="text-sm font-bold uppercase w-14 shrink-0">{m.symbol}</span>
+        <span className={cn('text-sm font-semibold flex-1', color)}>${m.price.toFixed(2)}</span>
+        <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded', pos && 'bg-success/15', neg && 'bg-destructive/15', color)}>
+          {pos ? '+' : ''}{m.change_percent.toFixed(2)}%
+        </span>
+        {expandable && (expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />)}
       </div>
       {expanded && (
-        <div className="px-2 pb-1.5 border-t border-border/30 pt-1">
-          <div className="grid grid-cols-3 gap-x-3 gap-y-0.5 text-[0.55rem]">
+        <div className="px-2.5 pb-2 border-t border-border/30 pt-1.5">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
             <div className="flex justify-between"><span className="text-muted-foreground">Open</span><span className="font-medium">${m.open?.toFixed(2) ?? '-'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Prev</span><span className="font-medium">${m.previous_close?.toFixed(2) ?? '-'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Vol</span><span className="font-medium">{fmt(m.volume)}</span></div>
@@ -81,9 +56,7 @@ function MediumStockRow({ item }: { item: FeedItem }) {
             <div className="flex justify-between"><span className="text-muted-foreground">Cap</span><span className="font-medium">{fmt(m.market_cap)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">52W H</span><span className="font-medium">${m['52w_high']?.toFixed(2) ?? '-'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">52W L</span><span className="font-medium">${m['52w_low']?.toFixed(2) ?? '-'}</span></div>
-            <div className="flex justify-between">
-              {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>Yahoo <ExternalLink className="w-2 h-2" /></a>}
-            </div>
+            <div>{item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>Yahoo <ExternalLink className="w-2.5 h-2.5" /></a>}</div>
           </div>
         </div>
       )}
@@ -96,26 +69,34 @@ interface Props { dims?: WidgetDimensions }
 export default function StockTicker({ dims }: Props) {
   const { data, loading, error } = useWidgetData<FeedResponse>('/api/feed?source=stock&limit=20', 60000);
   const size = dims?.size ?? 'medium';
-  const h = dims?.h ?? 3;
-  const rh = dims?.rowHeightPx ?? 80;
+  const h = dims?.h ?? 3; const rh = dims?.rowHeightPx ?? 80;
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">Loading...</div>;
-  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-xs">Error</div>;
-  if (!data || data.items.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">No stock data</div>;
+  if (loading) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">Loading...</div>;
+  if (error) return <div className="flex-1 flex items-center justify-center text-destructive text-sm">Error</div>;
+  if (!data || data.items.length === 0) return <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">No stock data</div>;
 
   if (size === 'small') {
-    const max = itemsForHeight(h, rh, 18);
+    const max = itemsForHeight(h, rh, 24);
     return (
-      <div className="flex flex-col overflow-hidden h-full">
-        <div className="flex-1 overflow-y-auto">{data.items.slice(0, max).map((i) => <SmallStockRow key={i.id} item={i} />)}</div>
+      <div className="flex flex-col overflow-hidden h-full gap-0.5">
+        {data.items.slice(0, max).map((i) => {
+          const m = i.metadata as unknown as StockMeta;
+          const color = m.direction === 'up' ? 'text-success' : m.direction === 'down' ? 'text-destructive' : 'text-muted-foreground';
+          return (
+            <div key={i.id} className="flex items-center justify-between py-0.5">
+              <div className="flex items-center gap-1"><DirIcon dir={m.direction} /><span className="text-xs font-bold uppercase">{m.symbol}</span></div>
+              <span className={cn('text-xs font-semibold', color)}>${m.price.toFixed(2)}</span>
+            </div>
+          );
+        })}
       </div>
     );
   }
 
-  const max = itemsForHeight(h, rh, 28);
+  const max = itemsForHeight(h, rh, 34);
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col gap-0.5">{data.items.slice(0, max).map((i) => <MediumStockRow key={i.id} item={i} />)}</div>
+      <div className="flex-1 overflow-y-auto flex flex-col gap-1">{data.items.slice(0, max).map((i) => <StockRow key={i.id} item={i} expandable />)}</div>
     </div>
   );
 }

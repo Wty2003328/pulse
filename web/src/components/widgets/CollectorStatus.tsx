@@ -29,7 +29,7 @@ export default function CollectorStatus({ dims }: Props) {
         {data.collectors.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 py-0.5">
             <div className={`w-2 h-2 rounded-full shrink-0 ${c.enabled ? 'bg-success' : 'bg-muted-foreground/40'}`} />
-            <span className="text-[0.7rem] text-foreground truncate">{c.name}</span>
+            <span className="text-xs text-foreground truncate">{c.name}</span>
           </div>
         ))}
       </div>
@@ -48,15 +48,15 @@ export default function CollectorStatus({ dims }: Props) {
             <div key={collector.id} className="p-2 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-medium">{collector.name}</span>
-                <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-[0.55rem] px-1 py-0">{collector.enabled ? 'ON' : 'OFF'}</Badge>
+                <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-xs px-1 py-0">{collector.enabled ? 'ON' : 'OFF'}</Badge>
               </div>
               {lastRun && (
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Badge variant={lastRun.status === 'success' ? 'success' : lastRun.status === 'running' ? 'warning' : 'destructive'} className="text-[0.55rem] px-1 py-0">{lastRun.status}</Badge>
-                  <span className="text-[0.6rem] text-muted-foreground">{lastRun.items_count} items</span>
+                  <Badge variant={lastRun.status === 'success' ? 'success' : lastRun.status === 'running' ? 'warning' : 'destructive'} className="text-xs px-1 py-0">{lastRun.status}</Badge>
+                  <span className="text-xs text-muted-foreground">{lastRun.items_count} items</span>
                 </div>
               )}
-              {collector.enabled && <Button variant="outline" size="sm" className="w-full h-5 text-[0.6rem]" onClick={() => triggerCollector(collector.id)}>Run Now</Button>}
+              {collector.enabled && <Button variant="outline" size="sm" className="w-full h-5 text-xs" onClick={() => triggerCollector(collector.id)}>Run Now</Button>}
             </div>
           );
         })}

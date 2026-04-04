@@ -26,10 +26,10 @@ function FeedItemRow({ item }: { item: FeedItem }) {
     <div className="rounded-lg transition-colors hover:bg-accent/40">
       <div className="px-2.5 py-1.5 cursor-pointer" onClick={() => hasContent && setExpanded(!expanded)}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[0.6rem] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+          <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
             {sourceLabel(item.source)}
           </span>
-          <span className="text-[0.6rem] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}
           </span>
           {hasContent && (
@@ -38,13 +38,13 @@ function FeedItemRow({ item }: { item: FeedItem }) {
             </span>
           )}
         </div>
-        <h3 className="text-[0.8rem] font-medium leading-snug pl-2">{item.title}</h3>
+        <h3 className="text-sm font-medium leading-snug pl-2">{item.title}</h3>
       </div>
       {expanded && (
         <div className="pl-5 pr-2.5 pb-2 border-t border-border/40 pt-1.5 space-y-1.5">
-          {item.summary && <p className="text-[0.75rem] text-muted-foreground leading-relaxed italic">{item.summary}</p>}
+          {item.summary && <p className="text-sm text-muted-foreground leading-relaxed italic">{item.summary}</p>}
           {item.content && (
-            <div className="text-[0.75rem] text-foreground/80 leading-relaxed max-h-48 overflow-y-auto">
+            <div className="text-sm text-foreground/80 leading-relaxed max-h-48 overflow-y-auto">
               {stripHtml(item.content).slice(0, 1000)}
               {stripHtml(item.content).length > 1000 && '...'}
             </div>
@@ -65,7 +65,7 @@ function FeedItemRow({ item }: { item: FeedItem }) {
 function SmallFeedItem({ item }: { item: FeedItem }) {
   return (
     <div className="py-1 border-b border-border/30 last:border-0 truncate">
-      <span className="text-[0.7rem] text-foreground leading-tight cursor-pointer hover:text-primary" title={item.title}
+      <span className="text-xs text-foreground leading-tight cursor-pointer hover:text-primary" title={item.title}
         onClick={() => item.url && window.open(item.url, '_blank')}>
         {item.title}
       </span>
@@ -102,7 +102,7 @@ export default function NewsFeed({ dims }: Props) {
   return (
     <div className="flex flex-col overflow-hidden h-full">
       <div className="flex items-center mb-1">
-        <Badge variant="secondary" className="text-[0.55rem] px-1.5 py-0">{data.count}</Badge>
+        <Badge variant="secondary" className="text-xs px-1.5 py-0">{data.count}</Badge>
       </div>
       <div className="flex-1 overflow-y-auto">
         {data.items.slice(0, maxItems).map((item) => <FeedItemRow key={item.id} item={item} />)}

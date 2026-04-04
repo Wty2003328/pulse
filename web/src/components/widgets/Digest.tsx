@@ -23,19 +23,19 @@ function DigestItem({ item }: { item: FeedItem }) {
         <div className="absolute top-0 left-0 h-full z-0"
           style={{ width: `${scorePercent}%`, background: 'linear-gradient(90deg, rgba(108,140,255,0.1), transparent)' }} />
         <div className="relative z-10">
-          <div className="flex items-center gap-1.5 mb-0.5 text-[0.6rem]">
+          <div className="flex items-center gap-1.5 mb-0.5 text-xs">
             <span className="font-bold text-primary">{score}</span>
             <span className="text-primary bg-primary/10 px-1 py-0.5 rounded font-medium">{item.source}</span>
             <span className="text-muted-foreground">{item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}</span>
           </div>
-          <h4 className="text-[0.8rem] font-medium leading-snug pl-2">{item.title}</h4>
+          <h4 className="text-sm font-medium leading-snug pl-2">{item.title}</h4>
         </div>
       </div>
       {expanded && (
         <div className="pl-5 pr-2 pb-2 border-t border-border/40 pt-1.5 space-y-1.5">
-          {item.summary && <p className="text-[0.75rem] text-muted-foreground leading-relaxed italic">{item.summary}</p>}
+          {item.summary && <p className="text-sm text-muted-foreground leading-relaxed italic">{item.summary}</p>}
           {item.content && (
-            <div className="text-[0.75rem] text-foreground/80 leading-relaxed max-h-40 overflow-y-auto">
+            <div className="text-sm text-foreground/80 leading-relaxed max-h-40 overflow-y-auto">
               {stripHtml(item.content).slice(0, 600)}{stripHtml(item.content).length > 600 && '...'}
             </div>
           )}
@@ -70,7 +70,7 @@ export default function Digest({ dims }: Props) {
         <div className="flex-1 overflow-y-auto">
           {data.items.slice(0, max).map((item) => (
             <div key={item.id} className="py-1 border-b border-border/30 last:border-0 truncate">
-              <span className="text-[0.7rem] text-foreground cursor-pointer hover:text-primary" title={item.title}
+              <span className="text-xs text-foreground cursor-pointer hover:text-primary" title={item.title}
                 onClick={() => item.url && window.open(item.url, '_blank')}>{item.title}</span>
             </div>
           ))}

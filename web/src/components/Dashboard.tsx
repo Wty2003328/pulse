@@ -26,7 +26,7 @@ const defaultLayout: Layout[] = [
   { i: 'stocks',     x: 5,  y: 4, w: 4, h: 3, minW: 2, minH: 2 },
   { i: 'system',     x: 9,  y: 4, w: 3, h: 3, minW: 2, minH: 2 },
   { i: 'calendar',   x: 0,  y: 6, w: 3, h: 4, minW: 2, minH: 2 },
-  { i: 'zeroclaw',   x: 3,  y: 6, w: 5, h: 4, minW: 3, minH: 3 },
+  { i: 'zeroclaw',   x: 3,  y: 6, w: 5, h: 4, minW: 2, minH: 2 },
   { i: 'trending',   x: 8,  y: 7, w: 4, h: 3, minW: 2, minH: 2 },
   { i: 'collectors', x: 0,  y: 10,w: 3, h: 3, minW: 2, minH: 2 },
 ];
