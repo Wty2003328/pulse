@@ -28,14 +28,14 @@ function StockRow({ item }: { item: FeedItem }) {
 
   return (
     <div className={cn('rounded-md overflow-hidden', bg)}>
-      <div className="flex items-center gap-1.5 px-2 py-1.5 cursor-pointer overflow-hidden" onClick={() => setExpanded(!expanded)}>
+      <div className="flex items-center gap-1 px-1.5 py-1 cursor-pointer overflow-hidden" onClick={() => setExpanded(!expanded)}>
         <DirIcon dir={m.direction} />
-        <span className="text-sm font-bold uppercase shrink-0">{m.symbol}</span>
-        <span className={cn('text-sm font-semibold shrink-0 ml-auto', color)}>${m.price.toFixed(2)}</span>
-        <span className={cn('text-xs font-medium px-1 py-0.5 rounded shrink-0', pos && 'bg-success/15', neg && 'bg-destructive/15', color)}>
-          {pos ? '+' : ''}{m.change_percent.toFixed(1)}%
+        <span className="cq-text-sm font-bold uppercase shrink-0">{m.symbol}</span>
+        <span className={cn('cq-text-sm font-semibold shrink-0 ml-auto', color)}>${m.price.toFixed(2)}</span>
+        <span className={cn('hidden @[170px]:inline cq-text-xs font-medium px-1 py-0.5 rounded shrink-0', pos && 'bg-success/15', neg && 'bg-destructive/15', color)}>
+          {pos?'+':''}{m.change_percent.toFixed(1)}%
         </span>
-        {expanded ? <ChevronUp className="w-3 h-3 text-muted-foreground shrink-0"/> : <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0"/>}
+        <span className="hidden @[120px]:inline shrink-0">{expanded ? <ChevronUp className="w-3 h-3 text-muted-foreground"/> : <ChevronDown className="w-3 h-3 text-muted-foreground"/>}</span>
       </div>
       {expanded && (
         <div className="px-2 pb-1.5 border-t border-border/30 pt-1.5">
