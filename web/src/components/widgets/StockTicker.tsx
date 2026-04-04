@@ -67,8 +67,24 @@ export default function StockTicker({ dims }: Props) {
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto flex flex-col justify-evenly">
-        {data.items.map((i) => <StockRow key={i.id} item={i} />)}
+      {/* Tiny: plain text symbol + price */}
+      <div className="@[200px]:hidden flex-1 overflow-y-auto flex flex-col justify-evenly">
+        {data.items.map((i) => {
+          const sm = i.metadata as unknown as StockMeta;
+          const c = sm.direction === 'up' ? 'text-success' : sm.direction === 'down' ? 'text-destructive' : 'text-muted-foreground';
+          return (
+            <div key={i.id} className="flex items-center justify-between cq-text-xs">
+              <span className="font-bold">{sm.symbol}</span>
+              <span className={cn('font-semibold', c)}>${sm.price.toFixed(0)}</span>
+            </div>
+          );
+        })}
+      </div>
+      {/* Normal: full rows */}
+      <div className="hidden @[200px]:flex flex-col overflow-hidden h-full">
+        <div className="flex-1 overflow-y-auto flex flex-col justify-evenly">
+          {data.items.map((i) => <StockRow key={i.id} item={i} />)}
+        </div>
       </div>
     </div>
   );

@@ -53,11 +53,23 @@ export default function NewsFeed({ dims }: Props) {
 
   return (
     <div className="flex flex-col overflow-hidden h-full">
-      <div className="hidden @[150px]:flex items-center mb-1 shrink-0">
-        <Badge variant="secondary" className="text-xs px-1.5 py-0">{data.count}</Badge>
+      {/* Tiny: just titles */}
+      <div className="@[200px]:hidden flex-1 overflow-y-auto">
+        {data.items.map((item) => (
+          <div key={item.id} className="py-0.5 truncate cq-text-xs text-foreground cursor-pointer hover:text-primary"
+            onClick={() => item.url && window.open(item.url, '_blank')}>
+            {item.title}
+          </div>
+        ))}
       </div>
-      <div className="flex-1 overflow-y-auto">
-        {data.items.map((item) => <FeedItemRow key={item.id} item={item} />)}
+      {/* Normal: full rows */}
+      <div className="hidden @[200px]:flex flex-col overflow-hidden h-full">
+        <div className="flex items-center mb-1 shrink-0">
+          <Badge variant="secondary" className="text-xs px-1.5 py-0">{data.count}</Badge>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {data.items.map((item) => <FeedItemRow key={item.id} item={item} />)}
+        </div>
       </div>
     </div>
   );

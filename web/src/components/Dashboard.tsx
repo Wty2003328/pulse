@@ -81,11 +81,11 @@ export default function Dashboard() {
     () => console.log('WebSocket disconnected')
   );
 
-  // Square cells based on width only — scroll vertically if needed
-  const rowHeight = useMemo(() => {
-    if (containerWidth === 0) return 50;
-    return Math.floor((containerWidth - GAP * (COLS - 1)) / COLS);
-  }, [containerWidth]);
+  // Fixed cell size — widgets don't shrink with browser.
+  // At 1920px, cell = (1920 - 8*11) / 12 = 153px. Use ~150px as the fixed size.
+  // If browser is narrower, the grid scrolls horizontally.
+  const CELL_SIZE = 150;
+  const rowHeight = CELL_SIZE;
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     setLayout(newLayout);
@@ -116,7 +116,7 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      <main ref={containerRef} className="flex-1 p-1 overflow-y-auto">
+      <main ref={containerRef} className="flex-1 p-1 overflow-auto">
         {containerWidth > 0 && (
           <GridLayout
             className="w-full"
@@ -124,7 +124,7 @@ export default function Dashboard() {
             onLayoutChange={handleLayoutChange}
             cols={COLS}
             rowHeight={rowHeight}
-            width={containerWidth - 8}
+            width={Math.max(containerWidth - 8, COLS * CELL_SIZE + (COLS - 1) * GAP)}
             draggableHandle=".widget-drag-handle"
             isDraggable={true}
             isResizable={true}
