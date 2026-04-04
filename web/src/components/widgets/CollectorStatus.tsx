@@ -26,13 +26,13 @@ export default function CollectorStatus({ dims }: Props) {
           return (
             <div key={collector.id} className="p-2 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs font-medium truncate">{collector.name}</span>
+                <span className="cq-text-sm font-medium truncate">{collector.name}</span>
                 <Badge variant={collector.enabled ? 'success' : 'secondary'} className="text-xs px-1 py-0">{collector.enabled ? 'ON' : 'OFF'}</Badge>
               </div>
               {lastRun && (
                 <div className="hidden @[130px]:flex items-center gap-1.5 mb-1">
                   <Badge variant={lastRun.status === 'success' ? 'success' : lastRun.status === 'running' ? 'warning' : 'destructive'} className="text-xs px-1 py-0">{lastRun.status}</Badge>
-                  <span className="text-xs text-muted-foreground">{lastRun.items_count} items</span>
+                  <span className="cq-text-xs text-muted-foreground">{lastRun.items_count} items</span>
                 </div>
               )}
               {collector.enabled && <div className="hidden @[200px]:block"><Button variant="outline" size="sm" className="w-full h-6 text-xs" onClick={() => triggerCollector(collector.id)}>Run Now</Button></div>}

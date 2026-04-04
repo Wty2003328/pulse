@@ -25,11 +25,11 @@ function FeedItemRow({ item }: { item: FeedItem }) {
     <div className="rounded-lg transition-colors hover:bg-accent/40">
       <div className="px-2.5 py-1.5 cursor-pointer" onClick={() => hasContent && setExpanded(!expanded)}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{sourceLabel(item.source)}</span>
-          <span className="text-xs text-muted-foreground">{item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}</span>
+          <span className="cq-text-sm font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{sourceLabel(item.source)}</span>
+          <span className="cq-text-xs text-muted-foreground">{item.published_at ? timeAgo(item.published_at) : timeAgo(item.collected_at)}</span>
           {hasContent && <span className="ml-auto">{expanded ? <ChevronUp className="w-3 h-3 text-muted-foreground"/> : <ChevronDown className="w-3 h-3 text-muted-foreground"/>}</span>}
         </div>
-        <h3 className="text-sm font-medium leading-snug pl-2">{item.title}</h3>
+        <h3 className="cq-text-base font-medium leading-snug pl-2">{item.title}</h3>
       </div>
       {expanded && (
         <div className="pl-5 pr-2.5 pb-2 border-t border-border/40 pt-1.5 space-y-1.5">

@@ -57,6 +57,18 @@
   container-type: size;
 }
 
+/* Fluid typography and spacing that scales with container */
+.widget-container .cq-text-xs { font-size: clamp(0.55rem, 1.8cqi, 0.75rem); }
+.widget-container .cq-text-sm { font-size: clamp(0.65rem, 2.2cqi, 0.875rem); }
+.widget-container .cq-text-base { font-size: clamp(0.75rem, 2.8cqi, 1rem); }
+.widget-container .cq-text-lg { font-size: clamp(0.875rem, 3.5cqi, 1.25rem); }
+.widget-container .cq-text-xl { font-size: clamp(1rem, 5cqi, 1.5rem); }
+.widget-container .cq-text-2xl { font-size: clamp(1.25rem, 7cqi, 2rem); }
+.widget-container .cq-text-3xl { font-size: clamp(1.5rem, 9cqi, 2.5rem); }
+.widget-container .cq-text-4xl { font-size: clamp(1.75rem, 12cqi, 3rem); }
+.widget-container .cq-gap { gap: clamp(2px, 1cqi, 8px); }
+.widget-container .cq-p { padding: clamp(2px, 1cqi, 8px); }
+
 /* react-grid-layout base styles */
 .react-grid-layout {
   position: relative;

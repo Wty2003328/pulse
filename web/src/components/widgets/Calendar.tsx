@@ -64,12 +64,12 @@ function CalendarEvents() {
               return (
                 <div key={ev.id} className={`flex gap-2 p-1.5 rounded-md border-l-2 ${current ? 'border-l-primary bg-primary/5' : 'border-l-border'}`}>
                   <div className="hidden @[200px]:block w-14 shrink-0 text-right">
-                    {ev.all_day ? <span className="text-xs text-muted-foreground">All day</span> : (
-                      <div><div className="text-xs font-medium">{formatTime(ev.start)}</div><div className="text-xs text-muted-foreground">{formatTime(ev.end)}</div></div>
+                    {ev.all_day ? <span className="cq-text-xs text-muted-foreground">All day</span> : (
+                      <div><div className="cq-text-sm font-medium">{formatTime(ev.start)}</div><div className="cq-text-xs text-muted-foreground">{formatTime(ev.end)}</div></div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{ev.title}</div>
+                    <div className="cq-text-base font-medium truncate">{ev.title}</div>
                     {ev.location && <div className="hidden @[300px]:flex text-xs text-muted-foreground items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5 shrink-0"/>{ev.location}</div>}
                   </div>
                 </div>

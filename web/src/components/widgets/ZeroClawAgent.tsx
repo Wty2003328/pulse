@@ -68,7 +68,7 @@ export default function ZeroClawAgent({ dims }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-1.5 mb-1 shrink-0">
         {connected ? <Circle className="w-2 h-2 text-success fill-success"/> : <Circle className="w-2 h-2 text-destructive fill-destructive"/>}
-        <span className="text-xs text-muted-foreground">{connected ? 'Connected' : 'Offline'}</span>
+        <span className="cq-text-xs text-muted-foreground">{connected ? 'Connected' : 'Offline'}</span>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col gap-1 mb-1.5">
@@ -98,9 +98,9 @@ function MessageBubble({ msg }: { msg: ZCMessage }) {
           <span className="font-medium">{msg.toolName||(isCall?'Tool call':'Result')}</span>
           {expanded ? <ChevronUp className="w-3 h-3"/> : <ChevronDown className="w-3 h-3"/>}
         </button>
-        {expanded && <pre className="text-xs text-muted-foreground bg-background p-1.5 rounded mt-0.5 overflow-x-auto max-h-24">{msg.content.slice(0,500)}</pre>}
+        {expanded && <pre className="cq-text-xs text-muted-foreground bg-background p-1.5 rounded mt-0.5 overflow-x-auto max-h-24">{msg.content.slice(0,500)}</pre>}
       </div>
     );
   }
-  return <div className="text-xs text-muted-foreground italic text-center flex items-center justify-center gap-1"><AlertCircle className="w-3 h-3"/>{msg.content}</div>;
+  return <div className="cq-text-xs text-muted-foreground italic text-center flex items-center justify-center gap-1"><AlertCircle className="w-3 h-3"/>{msg.content}</div>;
 }
