@@ -77,7 +77,7 @@ export default function ZeroClawAgent({ dims }: Props) {
         {streaming && <div className="px-2 py-1 text-xs text-foreground/80 bg-muted rounded-md max-w-[85%]">{streaming}<span className="animate-pulse">|</span></div>}
       </div>
 
-      <div className="hidden @min-h-[80px]:flex gap-1.5 shrink-0">
+      <div className="hidden cqh-90 gap-1.5 shrink-0">
         <Input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')handleSend();}} placeholder={connected?'Message...':'Offline'} disabled={!connected} className="h-7 text-xs"/>
         <button onClick={handleSend} disabled={!connected||!input.trim()} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 cursor-pointer"><Send className="w-3.5 h-3.5"/></button>
       </div>

@@ -35,49 +35,63 @@ export default function SystemMonitor({ dims }: Props) {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden justify-between">
-      {/* Hostname — only when tall enough */}
-      <div className="hidden @min-h-[130px]:flex items-center justify-between shrink-0">
-        <span className="cq-text-sm font-medium truncate">{data.hostname}</span>
-        <span className="cq-text-xs text-muted-foreground flex items-center gap-0.5"><Clock className="w-3 h-3"/>{fmtUp(data.uptime_secs)}</span>
-      </div>
-
-      {/* Core metrics — always visible, fills available space */}
-      <div className="flex flex-col justify-center gap-2 flex-1">
-        {metrics.map(({ icon: I, label, pct, sub, detail, color }) => (
-          <div key={label}>
-            <div className="flex items-center gap-1.5">
-              <I className={`w-4 h-4 ${color} shrink-0`} />
-              <span className="hidden @[130px]:inline cq-text-xs text-muted-foreground shrink-0">{label}</span>
-              <Bar pct={pct} />
-              <span className="cq-text-base font-bold shrink-0">{pct.toFixed(0)}%</span>
-            </div>
-            {/* Short detail at medium width */}
-            <div className="hidden @[130px]:block @[200px]:hidden cq-text-xs text-muted-foreground ml-6">{sub}</div>
-            {/* Full detail at wider */}
-            <div className="hidden @[200px]:block cq-text-xs text-muted-foreground ml-6">{detail}</div>
+    <div className="flex flex-col h-full overflow-hidden gap-1">
+      {/* Short layout (h<90px): horizontal icons+% */}
+      <div className="cqh-short-flex items-center justify-around h-full hidden">
+        {metrics.map(({ icon: I, pct, color, label }) => (
+          <div key={label} className="flex flex-col items-center">
+            <I className={`w-3.5 h-3.5 ${color}`}/>
+            <span className="cq-text-lg font-bold">{pct.toFixed(0)}%</span>
           </div>
         ))}
       </div>
 
-      {/* Swap — at 2x2+ height */}
-      {data.swap_total_bytes > 0 && (
-        <div className="hidden @min-h-[220px]:block shrink-0">
-          <div className="flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-purple-400 shrink-0"/>
-            <span className="cq-text-xs text-muted-foreground shrink-0">Swap</span>
-            <Bar pct={data.swap_percent}/>
-            <span className="cq-text-base font-bold shrink-0">{data.swap_percent.toFixed(0)}%</span>
-          </div>
+      {/* Tall layout (h>=90px): vertical bars */}
+      <div className="cqh-tall-flex flex-col h-full gap-1 hidden">
+        {/* Hostname — at h>=120px */}
+        <div className="hidden cqh-120 items-center justify-between shrink-0">
+          <span className="cq-text-sm font-medium truncate">{data.hostname}</span>
+          <span className="cq-text-xs text-muted-foreground flex items-center gap-0.5"><Clock className="w-3 h-3"/>{fmtUp(data.uptime_secs)}</span>
         </div>
-      )}
 
-      {/* Extra stats — 2x2+ */}
-      <div className="hidden @[180px]:@min-h-[200px]:grid grid-cols-2 gap-1 py-1 border-t border-border/30 shrink-0">
-        <div className="flex items-center gap-1"><Activity className="w-3.5 h-3.5 text-green-400"/><span className="cq-text-xs">{data.process_count} procs</span></div>
-        <div className="flex items-center gap-1"><Wifi className="w-3.5 h-3.5 text-blue-400"/><span className="cq-text-xs">RX {fmtB(data.network_rx_bytes)}</span></div>
-        <div className="flex items-center gap-1"><Cpu className="w-3.5 h-3.5 text-primary"/><span className="cq-text-xs">{data.cpu_count} cores</span></div>
-        <div className="flex items-center gap-1"><Wifi className="w-3.5 h-3.5 text-orange-400"/><span className="cq-text-xs">TX {fmtB(data.network_tx_bytes)}</span></div>
+        {/* Core 3 bars */}
+        {metrics.map(({ icon: I, label, pct, sub, detail, color }) => (
+          <div key={label}>
+            <div className="flex items-center gap-1">
+              <I className={`w-4 h-4 ${color} shrink-0`}/>
+              <span className="hidden @[130px]:inline cq-text-xs text-muted-foreground shrink-0">{label}</span>
+              <Bar pct={pct}/>
+              <span className="cq-text-base font-bold shrink-0">{pct.toFixed(0)}%</span>
+            </div>
+            {/* Short detail at 130-200px width */}
+            <div className="hidden @[130px]:block @[200px]:hidden cq-text-xs text-muted-foreground ml-6">{sub}</div>
+            {/* Full detail at 200px+ width */}
+            <div className="hidden @[200px]:block cq-text-xs text-muted-foreground ml-6">{detail}</div>
+          </div>
+        ))}
+
+        {/* Swap — at h>=230px */}
+        {data.swap_total_bytes > 0 && (
+          <div className="hidden cqh-230-block">
+            <div className="flex items-center gap-1">
+              <Layers className="w-4 h-4 text-purple-400 shrink-0"/>
+              <span className="cq-text-xs text-muted-foreground shrink-0">Swap</span>
+              <Bar pct={data.swap_percent}/>
+              <span className="cq-text-base font-bold shrink-0">{data.swap_percent.toFixed(0)}%</span>
+            </div>
+          </div>
+        )}
+
+        {/* Extra stats — at w>=180px and h>=200px */}
+        <div className="hidden cqwh-180-200-grid grid-cols-2 gap-1 py-1 border-t border-border/30 shrink-0 mt-auto">
+          <div className="flex items-center gap-1"><Activity className="w-3.5 h-3.5 text-green-400"/><span className="cq-text-xs">{data.process_count} procs</span></div>
+          <div className="flex items-center gap-1"><Wifi className="w-3.5 h-3.5 text-blue-400"/><span className="cq-text-xs">RX {fmtB(data.network_rx_bytes)}</span></div>
+          <div className="flex items-center gap-1"><Cpu className="w-3.5 h-3.5 text-primary"/><span className="cq-text-xs">{data.cpu_count} cores</span></div>
+          <div className="flex items-center gap-1"><Wifi className="w-3.5 h-3.5 text-orange-400"/><span className="cq-text-xs">TX {fmtB(data.network_tx_bytes)}</span></div>
+        </div>
+
+        {/* OS — at w>=250px and h>=300px */}
+        <div className="hidden cqwh-250-300-block cq-text-xs text-muted-foreground truncate border-t border-border/30 pt-0.5 shrink-0">{data.os}</div>
       </div>
     </div>
   );

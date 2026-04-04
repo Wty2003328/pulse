@@ -29,8 +29,8 @@ export default function Weather({ dims }: Props) {
   const todayHourly = fc[0]?.hourly || [];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden justify-between">
-      {/* Temp + description */}
+    <div className="flex flex-col h-full overflow-hidden gap-1">
+      {/* Temp + description — always */}
       <div className="flex items-center justify-between shrink-0">
         <span className="cq-text-4xl font-bold leading-none">{Math.round(m.temp_f)}°</span>
         <div className="text-right min-w-0 ml-2">
@@ -39,28 +39,33 @@ export default function Weather({ dims }: Props) {
         </div>
       </div>
 
-      {/* Stats grid — fills remaining space */}
-      <div className="grid grid-cols-2 @[250px]:grid-cols-3 gap-x-2 gap-y-1 my-1 flex-1 content-center">
-        {m.humidity != null && <div className="flex items-center gap-1.5"><Droplets className="w-4 h-4 text-blue-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">Humidity</div><div className="cq-text-sm font-bold">{m.humidity}%</div></div></div>}
-        {mph != null && <div className="flex items-center gap-1.5"><Wind className="w-4 h-4 text-cyan-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">Wind</div><div className="cq-text-sm font-bold">{mph}mph {m.wind_direction||''}</div></div></div>}
-        {m.feels_like_f != null && <div className="flex items-center gap-1.5"><Thermometer className="w-4 h-4 text-orange-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">Feels</div><div className="cq-text-sm font-bold">{Math.round(m.feels_like_f)}°F</div></div></div>}
-        {m.uv_index != null && <div className="hidden @min-h-[140px]:flex items-center gap-1.5"><Sun className="w-4 h-4 text-yellow-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">UV</div><div className="cq-text-sm font-bold">{m.uv_index}</div></div></div>}
-        {m.pressure_mb && <div className="hidden @min-h-[140px]:flex items-center gap-1.5"><Gauge className="w-4 h-4 text-purple-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">Pressure</div><div className="cq-text-sm font-bold">{m.pressure_mb}mb</div></div></div>}
-        {m.cloud_cover && <div className="hidden @min-h-[140px]:flex items-center gap-1.5"><Cloud className="w-4 h-4 text-gray-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground leading-tight">Clouds</div><div className="cq-text-sm font-bold">{m.cloud_cover}%</div></div></div>}
+      {/* Core stats — always shown (3 stats) */}
+      <div className="grid grid-cols-3 gap-x-2 gap-y-1 shrink-0">
+        {m.humidity != null && <div className="flex items-center gap-1"><Droplets className="w-4 h-4 text-blue-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Humid</div><div className="cq-text-sm font-bold">{m.humidity}%</div></div></div>}
+        {mph != null && <div className="flex items-center gap-1"><Wind className="w-4 h-4 text-cyan-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Wind</div><div className="cq-text-sm font-bold">{mph}mph</div></div></div>}
+        {m.feels_like_f != null && <div className="flex items-center gap-1"><Thermometer className="w-4 h-4 text-orange-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Feels</div><div className="cq-text-sm font-bold">{Math.round(m.feels_like_f)}°</div></div></div>}
       </div>
 
-      {/* Sunrise/sunset */}
+      {/* Extra stats — at h>=140px (2x2+) */}
+      <div className="hidden cqh-140-grid grid-cols-3 gap-x-2 gap-y-1 shrink-0 border-t border-border/30 pt-1">
+        {m.uv_index != null && <div className="flex items-center gap-1"><Sun className="w-4 h-4 text-yellow-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">UV</div><div className="cq-text-sm font-bold">{m.uv_index}</div></div></div>}
+        {m.pressure_mb && <div className="flex items-center gap-1"><Gauge className="w-4 h-4 text-purple-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Press</div><div className="cq-text-sm font-bold">{m.pressure_mb}mb</div></div></div>}
+        {m.cloud_cover && <div className="flex items-center gap-1"><Cloud className="w-4 h-4 text-gray-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Cloud</div><div className="cq-text-sm font-bold">{m.cloud_cover}%</div></div></div>}
+        {m.visibility_km && <div className="hidden @[250px]:flex items-center gap-1"><Eye className="w-4 h-4 text-emerald-400 shrink-0"/><div><div className="cq-text-xs text-muted-foreground">Vis</div><div className="cq-text-sm font-bold">{m.visibility_km}km</div></div></div>}
+      </div>
+
+      {/* Sunrise/sunset — at h>=180px */}
       {fc[0]?.sunrise && (
-        <div className="hidden @min-h-[200px]:flex items-center gap-2 cq-text-xs text-muted-foreground shrink-0 py-0.5 border-t border-border/30">
+        <div className="hidden cqh-180 items-center gap-2 cq-text-xs text-muted-foreground shrink-0 py-0.5">
           <Sunrise className="w-3.5 h-3.5 text-orange-300 shrink-0"/><span>{fc[0].sunrise}</span>
           <Sunset className="w-3.5 h-3.5 text-red-300 shrink-0 ml-1"/><span>{fc[0].sunset}</span>
           {fc[0].moon_phase && <span className="hidden @[280px]:flex items-center gap-0.5 ml-auto"><Moon className="w-3.5 h-3.5 text-blue-200"/>{fc[0].moon_phase}</span>}
         </div>
       )}
 
-      {/* Hourly */}
+      {/* Hourly — at w>=300px and h>=200px */}
       {todayHourly.length > 0 && (
-        <div className="hidden @[300px]:@min-h-[200px]:block shrink-0">
+        <div className="hidden cqwh-300-200-block shrink-0">
           <div className="flex gap-0.5 overflow-x-auto pb-0.5">
             {todayHourly.map((h, i) => (
               <div key={i} className="flex flex-col items-center shrink-0 px-1 py-0.5 bg-muted rounded min-w-[2rem]">
@@ -72,9 +77,10 @@ export default function Weather({ dims }: Props) {
         </div>
       )}
 
-      {/* Forecast */}
+      {/* Forecast — at h>=140px */}
       {fc.length > 0 && (
-        <div className="hidden @min-h-[180px]:flex flex-col overflow-y-auto min-h-0 shrink">
+        <div className="hidden cqh-140 flex-col flex-1 overflow-y-auto min-h-0">
+          <div className="cq-text-xs font-semibold text-muted-foreground mb-0.5">Forecast</div>
           {fc.map((day, i) => {
             const rain = day.rain_chance ? parseInt(day.rain_chance) : 0;
             return (
