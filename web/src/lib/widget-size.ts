@@ -10,7 +10,7 @@ export type Orientation = 'wide' | 'tall' | 'square';
 
 export function getWidgetSize(w: number, h: number): WidgetSize {
   if (w <= 1 && h <= 1) return 'small';
-  if (w <= 2 && h <= 2) return 'medium';
+  if (w <= 2 || h <= 2) return 'medium';
   return 'large';
 }
 

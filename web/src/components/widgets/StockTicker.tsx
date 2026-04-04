@@ -37,18 +37,18 @@ function StockRow({ item, expandable, forceExpanded }: { item: FeedItem; expanda
 
   return (
     <div className={cn('rounded-md', bg)}>
-      <div className={cn('flex items-center gap-2 px-2.5 py-1.5', expandable && 'cursor-pointer')} onClick={() => expandable && setManualExpanded(!manualExpanded)}>
+      <div className={cn('flex items-center gap-1.5 px-2 py-1.5 overflow-hidden', expandable && 'cursor-pointer')} onClick={() => expandable && setManualExpanded(!manualExpanded)}>
         <DirIcon dir={m.direction} />
-        <span className="text-sm font-bold uppercase w-14 shrink-0">{m.symbol}</span>
-        <span className={cn('text-sm font-semibold flex-1', color)}>${m.price.toFixed(2)}</span>
-        <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded', pos && 'bg-success/15', neg && 'bg-destructive/15', color)}>
-          {pos ? '+' : ''}{m.change_percent.toFixed(2)}%
+        <span className="text-sm font-bold uppercase shrink-0">{m.symbol}</span>
+        <span className={cn('text-sm font-semibold shrink-0 ml-auto', color)}>${m.price.toFixed(2)}</span>
+        <span className={cn('text-xs font-medium px-1 py-0.5 rounded shrink-0', pos && 'bg-success/15', neg && 'bg-destructive/15', color)}>
+          {pos ? '+' : ''}{m.change_percent.toFixed(1)}%
         </span>
-        {expandable && (expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />)}
+        {expandable && (expanded ? <ChevronUp className="w-3 h-3 text-muted-foreground shrink-0" /> : <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />)}
       </div>
       {expanded && (
         <div className="px-2.5 pb-2 border-t border-border/30 pt-1.5">
-          <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
             <div className="flex justify-between"><span className="text-muted-foreground">Open</span><span className="font-medium">${m.open?.toFixed(2) ?? '-'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Prev</span><span className="font-medium">${m.previous_close?.toFixed(2) ?? '-'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Vol</span><span className="font-medium">{fmt(m.volume)}</span></div>
