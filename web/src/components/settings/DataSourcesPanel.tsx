@@ -4,7 +4,7 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Loader2, Pencil, Check, X, Plus, Trash2, Rss, MapPin, TrendingUp } from 'lucide-react';
+import { Loader2, Pencil, Check, X, Plus, Trash2, Rss, MapPin, TrendingUp, Calendar, Bot, ExternalLink, CheckCircle2, XCircle } from 'lucide-react';
 import type { CollectorsResponse } from '../../types';
 
 interface UserFeed { name: string; url: string }
@@ -16,6 +16,13 @@ export function DataSourcesPanel({ onToast }: Props) {
   const [showAddFeed, setShowAddFeed] = useState(false);
   const [weatherLocation, setWeatherLocation] = useState('');
   const [stockSymbols, setStockSymbols] = useState('');
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [googleClientSecret, setGoogleClientSecret] = useState('');
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarConnecting, setCalendarConnecting] = useState(false);
+  const [zeroclawUrl, setZeroclawUrl] = useState('');
+  const [zeroclawToken, setZeroclawToken] = useState('');
+  const [zeroclawStatus, setZeroclawStatus] = useState<{ configured: boolean; reachable: boolean } | null>(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const fetchFeeds = async () => {
@@ -29,7 +36,16 @@ export function DataSourcesPanel({ onToast }: Props) {
         const d = await res.json();
         if (d.weather_location) setWeatherLocation(d.weather_location);
         if (d.stock_symbols) setStockSymbols(d.stock_symbols);
+        if (d.google_client_id) setGoogleClientId(d.google_client_id);
+        if (d.google_client_secret) setGoogleClientSecret(d.google_client_secret);
       }
+    } catch {}
+    // Calendar status
+    try { const r = await fetch('/api/calendar/status'); if (r.ok) { const s = await r.json(); setCalendarConnected(s.connected); } } catch {}
+    // ZeroClaw config + status
+    try {
+      const r = await fetch('/api/zeroclaw/config'); if (r.ok) { const c = await r.json(); if (c.url) setZeroclawUrl(c.url); if (c.token) setZeroclawToken(c.token); }
+      const s = await fetch('/api/zeroclaw/status'); if (s.ok) setZeroclawStatus(await s.json());
     } catch {}
     setSettingsLoaded(true);
   };
@@ -111,6 +127,123 @@ export function DataSourcesPanel({ onToast }: Props) {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Google Calendar */}
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Google Calendar</h3>
+      <Card className="mb-6">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Show upcoming events on your dashboard.</p>
+            {calendarConnected ? (
+              <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3"/>Connected</Badge>
+            ) : (
+              <Badge variant="secondary">Not connected</Badge>
+            )}
+          </div>
+
+          {!calendarConnected && (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Create a project in <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console <ExternalLink className="w-2.5 h-2.5 inline"/></a>,
+                enable the Calendar API, create OAuth 2.0 credentials (Web application), and set the redirect URI to:
+              </p>
+              <code className="text-xs bg-muted px-2 py-1 rounded block">http://localhost:8080/api/calendar/callback</code>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Client ID</label>
+                <Input value={googleClientId} onChange={(e) => setGoogleClientId(e.target.value)} placeholder="xxx.apps.googleusercontent.com" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Client Secret</label>
+                <Input type="password" value={googleClientSecret} onChange={(e) => setGoogleClientSecret(e.target.value)} placeholder="GOCSPX-..." />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={async () => {
+                  if (!googleClientId || !googleClientSecret) { onToast('Enter Client ID and Secret', 'error'); return; }
+                  // Save credentials first
+                  await fetch('/api/settings/app', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ google_client_id: googleClientId, google_client_secret: googleClientSecret }) });
+                  onToast('Credentials saved', 'success');
+                }}>Save Credentials</Button>
+                <Button size="sm" disabled={!googleClientId || !googleClientSecret || calendarConnecting} onClick={async () => {
+                  setCalendarConnecting(true);
+                  try {
+                    // Save first
+                    await fetch('/api/settings/app', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ google_client_id: googleClientId, google_client_secret: googleClientSecret }) });
+                    const res = await fetch('/api/calendar/auth-url');
+                    if (!res.ok) { onToast('Failed to get auth URL. Check credentials.', 'error'); setCalendarConnecting(false); return; }
+                    const { url } = await res.json();
+                    const popup = window.open(url, 'google-auth', 'width=500,height=600');
+                    const poll = setInterval(async () => {
+                      const s = await fetch('/api/calendar/status').then(r => r.json()).catch(() => ({ connected: false }));
+                      if (s.connected) { clearInterval(poll); setCalendarConnected(true); setCalendarConnecting(false); onToast('Google Calendar connected!', 'success'); if (popup) popup.close(); }
+                    }, 2000);
+                    setTimeout(() => { clearInterval(poll); setCalendarConnecting(false); }, 120000);
+                  } catch { setCalendarConnecting(false); onToast('Failed', 'error'); }
+                }}>
+                  {calendarConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1"/> : null}
+                  {calendarConnecting ? 'Connecting...' : 'Connect Google Calendar'}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {calendarConnected && (
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={async () => {
+              await fetch('/api/calendar/disconnect', { method: 'POST' });
+              setCalendarConnected(false);
+              onToast('Disconnected', 'success');
+            }}>Disconnect</Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ZeroClaw Agent */}
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5"><Bot className="w-3.5 h-3.5" />ZeroClaw Agent</h3>
+      <Card className="mb-6">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Connect to a running ZeroClaw agent for AI chat.</p>
+            {zeroclawStatus?.reachable ? (
+              <Badge variant="success" className="gap-1"><CheckCircle2 className="w-3 h-3"/>Reachable</Badge>
+            ) : zeroclawStatus?.configured ? (
+              <Badge variant="destructive" className="gap-1"><XCircle className="w-3 h-3"/>Unreachable</Badge>
+            ) : (
+              <Badge variant="secondary">Not configured</Badge>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Gateway URL</label>
+            <Input value={zeroclawUrl} onChange={(e) => setZeroclawUrl(e.target.value)} placeholder="http://localhost:42617" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Auth Token (optional)</label>
+            <Input type="password" value={zeroclawToken} onChange={(e) => setZeroclawToken(e.target.value)} placeholder="Pairing token or API key" />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={async () => {
+              try {
+                const res = await fetch('/api/zeroclaw/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: zeroclawUrl, token: zeroclawToken }) });
+                if (res.ok) {
+                  onToast('ZeroClaw config saved', 'success');
+                  const s = await fetch('/api/zeroclaw/status').then(r => r.json()).catch(() => null);
+                  setZeroclawStatus(s);
+                  if (s?.reachable) onToast('ZeroClaw is reachable!', 'success');
+                  else if (s?.configured) onToast('Saved but ZeroClaw is not reachable at that URL', 'error');
+                }
+              } catch { onToast('Failed', 'error'); }
+            }} disabled={!zeroclawUrl.trim()}>Save & Test</Button>
+            {zeroclawStatus?.configured && (
+              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={async () => {
+                await fetch('/api/zeroclaw/config', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: '', token: '' }) });
+                setZeroclawUrl(''); setZeroclawToken(''); setZeroclawStatus(null);
+                onToast('ZeroClaw disconnected', 'success');
+              }}>Disconnect</Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
